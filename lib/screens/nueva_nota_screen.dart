@@ -95,6 +95,8 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
   bool _busquedaIntegradaRealizada = false;
   List<_StudentSearchResult> _studentSearchResults = const [];
   String? _studentSearchResultsTitle;
+  List<_StudentSearchResult> _studentSearchResultsBase = const [];
+  String? _studentSearchResultsBaseTitle;
 
   // Flag para detectar si volvemos del background
   bool _isInBackground = false;
@@ -303,6 +305,8 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
         _notasLocal = const [];
         _studentSearchResults = const [];
         _studentSearchResultsTitle = null;
+        _studentSearchResultsBase = const [];
+        _studentSearchResultsBaseTitle = null;
         _atencionIntegral = false;
         _error = 'Escribe una matrícula o nombre para buscar el expediente.';
       });
@@ -361,6 +365,8 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
       _busquedaIntegradaRealizada = true;
       _studentSearchResults = const [];
       _studentSearchResultsTitle = null;
+      _studentSearchResultsBase = const [];
+      _studentSearchResultsBaseTitle = null;
     });
 
     Map<String, dynamic>? expedienteCloud;
@@ -397,6 +403,8 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
       _notasLocal = const [];
       _studentSearchResults = const [];
       _studentSearchResultsTitle = null;
+      _studentSearchResultsBase = const [];
+      _studentSearchResultsBaseTitle = null;
       _atencionIntegral = false;
     });
 
@@ -446,9 +454,11 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
 
     setState(() {
       _cargando = false;
+      final title = 'Coincidencias por nombre: ${results.length}';
       _studentSearchResults = results;
-      _studentSearchResultsTitle =
-          'Coincidencias por nombre: ${results.length}';
+      _studentSearchResultsTitle = title;
+      _studentSearchResultsBase = results;
+      _studentSearchResultsBaseTitle = title;
     });
   }
 
@@ -489,29 +499,36 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
       _expedienteLocal = null;
       _notasLocal = const [];
       _atencionIntegral = false;
-      _studentSearchResults = const [];
-      _studentSearchResultsTitle = null;
     });
 
     try {
       final normalizedEscuela = _normalizeLookup(escuela);
       final normalizedGrupo = _normalizeLookup(grupo);
-      final qExp = widget.db.select(widget.db.healthRecords)
-        ..orderBy([
-          (t) => OrderingTerm(expression: t.timestamp, mode: OrderingMode.desc),
-        ]);
-      final records = await qExp.get();
-      final results = records
-          .where((record) {
-            final school = _normalizeLookup(record.escuelaUnidadAcademica);
-            final group = _normalizeLookup(record.grupo);
-            final matchesSchool =
-                normalizedEscuela.isEmpty || school.contains(normalizedEscuela);
-            final matchesGroup =
-                normalizedGrupo.isEmpty || group.contains(normalizedGrupo);
-            return matchesSchool && matchesGroup;
-          })
-          .map(_StudentSearchResult.fromLocal)
+      var baseResults = _studentSearchResultsBase;
+      var baseTitle = _studentSearchResultsBaseTitle;
+
+      if (baseResults.isEmpty && _studentSearchResults.isNotEmpty) {
+        baseResults = _studentSearchResults;
+        baseTitle = _studentSearchResultsTitle;
+      }
+
+      if (baseResults.isEmpty) {
+        final qExp = widget.db.select(widget.db.healthRecords)
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.timestamp, mode: OrderingMode.desc),
+          ]);
+        final records = await qExp.get();
+        baseResults = records.map(_StudentSearchResult.fromLocal).toList();
+        baseTitle = 'Estudiantes locales: ${baseResults.length}';
+      }
+
+      final results = baseResults
+          .where((result) => _matchesAcademicFilters(
+                result,
+                normalizedEscuela,
+                normalizedGrupo,
+              ))
           .toList();
 
       if (!mounted) return;
@@ -519,6 +536,10 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
       if (results.isEmpty) {
         setState(() {
           _cargando = false;
+          _studentSearchResultsBase = baseResults;
+          _studentSearchResultsBaseTitle = baseTitle;
+          _studentSearchResults = const [];
+          _studentSearchResultsTitle = 'Estudiantes por escuela/grupo: 0';
           _error = 'No se encontraron estudiantes para los filtros indicados.';
         });
         return;
@@ -526,6 +547,8 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
 
       setState(() {
         _cargando = false;
+        _studentSearchResultsBase = baseResults;
+        _studentSearchResultsBaseTitle = baseTitle;
         _studentSearchResults = results;
         _studentSearchResultsTitle =
             'Estudiantes por escuela/grupo: ${results.length}';
@@ -547,6 +570,7 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
     return value
         .trim()
         .toLowerCase()
+        .replaceAll(RegExp(r'\s+'), ' ')
         .replaceAll('\u00e1', 'a')
         .replaceAll('\u00e9', 'e')
         .replaceAll('\u00ed', 'i')
@@ -554,6 +578,20 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
         .replaceAll('\u00fa', 'u')
         .replaceAll('\u00fc', 'u')
         .replaceAll('\u00f1', 'n');
+  }
+
+  bool _matchesAcademicFilters(
+    _StudentSearchResult result,
+    String normalizedEscuela,
+    String normalizedGrupo,
+  ) {
+    final school = _normalizeLookup(result.escuelaUnidadAcademica);
+    final group = _normalizeLookup(result.grupo);
+    final matchesSchool =
+        normalizedEscuela.isEmpty || school.contains(normalizedEscuela);
+    final matchesGroup =
+        normalizedGrupo.isEmpty || group.contains(normalizedGrupo);
+    return matchesSchool && matchesGroup;
   }
 
   Future<void> _buscarNotasMatricula({bool forceMatricula = false}) async {
@@ -2827,8 +2865,6 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               _buildExpedientesHeader(cs, desktop),
-                              const SizedBox(height: 14),
-                              _buildSchoolGroupFilters(cs),
                               if (_studentSearchResults.isNotEmpty) ...[
                                 const SizedBox(height: 14),
                                 _buildStudentSearchResultsCard(),
@@ -3209,6 +3245,8 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
                     : const Text('Buscar'),
               ),
               const SizedBox(width: 12),
+              _buildClearSearchButton(),
+              const SizedBox(width: 12),
               _buildAdvancedSearchButton(),
             ],
           )
@@ -3235,15 +3273,46 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
                     : const Text('Buscar'),
               ),
               const SizedBox(height: 10),
+              _buildClearSearchButton(),
+              const SizedBox(height: 10),
               _buildAdvancedSearchButton(),
             ],
           ),
         const SizedBox(height: 6),
         Text(
-          'Busca por matrícula o nombre. Para escuela/grupo usa los filtros inferiores.',
+          'Busca por matrícula, nombre o CURP.',
           style: TextStyle(color: cs.onSurface.withOpacity(.62), fontSize: 12),
         ),
       ],
+    );
+  }
+
+  Widget _buildClearSearchButton() {
+    return OutlinedButton(
+      onPressed: _cargando
+          ? null
+          : () {
+              setState(() {
+                _mat.clear();
+                _escuelaFiltro.clear();
+                _grupoFiltro.clear();
+                _studentSearchResults = const [];
+                _studentSearchResultsTitle = null;
+                _studentSearchResultsBase = const [];
+                _studentSearchResultsBaseTitle = null;
+                _error = null;
+              });
+            },
+      style: OutlinedButton.styleFrom(
+        foregroundColor: UAGroColors.blue,
+        backgroundColor: Colors.white,
+        side: BorderSide(color: UAGroColors.blue.withValues(alpha: .45)),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(9),
+        ),
+      ),
+      child: const Text('Limpiar'),
     );
   }
 
@@ -3396,6 +3465,7 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
     );
   }
 
+  // ignore: unused_element
   Widget _buildSchoolGroupFilters(ColorScheme cs) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -3436,8 +3506,9 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
                       setState(() {
                         _escuelaFiltro.clear();
                         _grupoFiltro.clear();
-                        _studentSearchResults = const [];
-                        _studentSearchResultsTitle = null;
+                        _studentSearchResults = _studentSearchResultsBase;
+                        _studentSearchResultsTitle =
+                            _studentSearchResultsBaseTitle;
                         _error = null;
                       });
                     },

@@ -1,22 +1,25 @@
 {
-  "version": "2.4.36",
-  "buildNumber": 36,
+  "version": "2.5.0",
+  "buildNumber": 37,
   "releaseDate": "2026-06-08",
   "channel": "internal",
   "minimumVersion": "2.0.0",
   "artifact": {
     "type": "exe",
-    "fileName": "CRES_Carnets_Setup_v2.4.36.exe",
-    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.4.36/CRES_Carnets_Setup_v2.4.36.exe",
-    "sha256": "0E1ACBBE6BEA4BD2AF4BC893AAFAC4A3630B7BD2D1A40E8D940838D5865BEB6C",
-    "fileSize": 13865834
+    "fileName": "CRES_Carnets_Setup_v2.5.0.exe",
+    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.5.0/CRES_Carnets_Setup_v2.5.0.exe",
+    "sha256": "4C2ED0E818DC6874220DBA096945366363B2FD9106703FB8B7DB6BCB39F3A341",
+    "fileSize": 13916189
   },
   "changelog": [
-    "Campos escuelaUnidadAcademica y grupo.",
-    "Guardia anti-downgrade.",
-    "Fuente unica de version.",
-    "Validacion SHA256 real.",
-    "Prueba integral segura del flujo de actualizacion.",
-    "Proteccion de scripts legacy."
+    "Nuevo diseno institucional.",
+    "Expedientes modernizados.",
+    "Busqueda por nombre.",
+    "Filtro escuela/grupo.",
+    "Psicologia individual, grupal y colectiva.",
+    "Adjuntos persistentes locales.",
+    "Promocion de Salud redisenada.",
+    "Vacunacion redisenada.",
+    "Mejoras de estabilidad y actualizacion automatica."
   ]
 }
