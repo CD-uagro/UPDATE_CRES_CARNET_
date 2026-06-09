@@ -1,4 +1,4 @@
-﻿// Este archivo ha sido migrado a FastAPI.
+// Este archivo ha sido migrado a FastAPI.
 // Toda la lógica de consultas y escritura ahora usa api_service.dart.
 // Puedes eliminar este archivo si ya no hay referencias a CosmosQueries.
 

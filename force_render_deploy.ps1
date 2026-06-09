@@ -1,6 +1,18 @@
 # Script para forzar deployment en Render usando webhook
 # Si Render no está desplegando automáticamente, este script lo fuerza
 
+param(
+    [switch]$AllowLegacy,
+    [switch]$ConfirmProduction
+)
+
+# LEGACY SCRIPT - No usar para releases actuales. Usar version.json + tool/sync_version.ps1 + build_installer.ps1.
+if (-not $AllowLegacy -or -not $ConfirmProduction) {
+    Write-Error "Script legacy bloqueado: consulta backend productivo y hace POST de prueba a /updates/publish."
+    Write-Host "Uso consciente: .\force_render_deploy.ps1 -AllowLegacy -ConfirmProduction" -ForegroundColor Yellow
+    exit 1
+}
+
 Write-Host "=== FORZAR DEPLOYMENT EN RENDER ===" -ForegroundColor Cyan
 Write-Host ""
 

@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io' show HttpDate;
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
@@ -106,7 +106,9 @@ class CosmosClient {
         if (verb == 'GET') {
           r = await http.get(uri, headers: headers).timeout(timeout);
         } else if (verb == 'POST') {
-          r = await http.post(uri, headers: headers, body: body).timeout(timeout);
+          r = await http
+              .post(uri, headers: headers, body: body)
+              .timeout(timeout);
         } else {
           throw UnsupportedError('Verb $verb');
         }
@@ -120,7 +122,8 @@ class CosmosClient {
     }
 
     // Si todas las variantes devolvieron 401, devolvemos el último como error
-    throw Exception('Cosmos ${verb.toLowerCase()} 401 after fallbacks: ${last?.body}');
+    throw Exception(
+        'Cosmos ${verb.toLowerCase()} 401 after fallbacks: ${last?.body}');
   }
 
   // ==================== OPERACIONES ====================
@@ -140,7 +143,8 @@ class CosmosClient {
     final r = await _sendWithAuthFallbacks(
       verb: 'GET',
       resourceType: 'docs',
-      resourceLinkExact: docLink, // usamos EXACTO; el fallback prueba lower también
+      resourceLinkExact:
+          docLink, // usamos EXACTO; el fallback prueba lower también
       path: path,
       extraHeaders: extra,
     );

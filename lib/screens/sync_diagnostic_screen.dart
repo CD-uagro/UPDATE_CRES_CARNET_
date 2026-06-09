@@ -41,11 +41,12 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
       _completed = false;
       _canRetry = false;
     });
-    
+
     // Iniciar logging
     SyncLogger.clear();
     SyncLogger.log('=== DIAGNÓSTICO INICIADO ===');
-    SyncLogger.log('Carnet: ${widget.carnet.matricula} - ${widget.carnet.nombreCompleto}');
+    SyncLogger.log(
+        'Carnet: ${widget.carnet.matricula} - ${widget.carnet.nombreCompleto}');
 
     // Paso 1: Verificar token
     await _addStep('Verificando autenticación', () async {
@@ -54,20 +55,22 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
         throw Exception('No hay token de autenticación');
       }
       if (token.startsWith('offline_')) {
-        throw Exception('Token offline detectado - reconecta a internet e inicia sesión nuevamente');
+        throw Exception(
+            'Token offline detectado - reconecta a internet e inicia sesión nuevamente');
       }
-      
+
       // Verificar si el token está expirado usando el servidor
       try {
         final response = await ApiService.testConnection();
         if (!response) {
-          throw Exception('No se puede verificar el token - servidor no responde');
+          throw Exception(
+              'No se puede verificar el token - servidor no responde');
         }
       } catch (e) {
         // El servidor está accesible pero puede que el token esté expirado
         // Lo verificaremos en el siguiente paso
       }
-      
+
       return 'Token válido (${token.substring(0, 20)}...)';
     });
 
@@ -87,15 +90,16 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
     // Paso 3: Verificar datos del carnet
     await _addStep('Validando datos del carnet', () async {
       final data = _buildCarnetData();
-      
+
       // Validaciones básicas
       if (data['matricula'] == null || data['matricula'].toString().isEmpty) {
         throw Exception('Matrícula vacía');
       }
-      if (data['nombreCompleto'] == null || data['nombreCompleto'].toString().isEmpty) {
+      if (data['nombreCompleto'] == null ||
+          data['nombreCompleto'].toString().isEmpty) {
         throw Exception('Nombre completo vacío');
       }
-      
+
       return 'Datos válidos: ${data['matricula']} - ${data['nombreCompleto']}';
     });
 
@@ -104,48 +108,49 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
     String? errorDetail;
     await _addStep('Sincronizando con el servidor', () async {
       final data = _buildCarnetData();
-      
+
       // Capturar logs en tiempo real
       print('🔍 [DIAGNÓSTICO] Iniciando sincronización...');
       print('🔍 [DIAGNÓSTICO] Datos a enviar: $data');
-      
+
       final success = await ApiService.pushSingleCarnet(data);
-      
+
       if (!success) {
         // Revisar si fue un error 401 (token expirado)
         final logs = SyncLogger.getAllLogs();
         if (logs.contains('Status HTTP: 401') || logs.contains('ERROR 401')) {
           errorDetail = '❌ TOKEN EXPIRADO\n\n'
-                       'Tu sesión ha caducado. Para resolver:\n'
-                       '1. Cierra esta ventana\n'
-                       '2. Cierra sesión en la app\n'
-                       '3. Vuelve a iniciar sesión\n'
-                       '4. Intenta sincronizar nuevamente\n\n'
-                       'Los carnets están guardados localmente y se sincronizarán después de renovar la sesión.';
+              'Tu sesión ha caducado. Para resolver:\n'
+              '1. Cierra esta ventana\n'
+              '2. Cierra sesión en la app\n'
+              '3. Vuelve a iniciar sesión\n'
+              '4. Intenta sincronizar nuevamente\n\n'
+              'Los carnets están guardados localmente y se sincronizarán después de renovar la sesión.';
         } else if (logs.contains('Status HTTP: 422')) {
           errorDetail = '❌ ERROR DE VALIDACIÓN (HTTP 422)\n\n'
-                       'El servidor rechazó los datos. Causas comunes:\n'
-                       '  • Matrícula duplicada\n'
-                       '  • Campos requeridos vacíos\n'
-                       '  • Formato de datos inválido\n\n'
-                       'Revisa los logs copiados para ver el detalle exacto.';
+              'El servidor rechazó los datos. Causas comunes:\n'
+              '  • Matrícula duplicada\n'
+              '  • Campos requeridos vacíos\n'
+              '  • Formato de datos inválido\n\n'
+              'Revisa los logs copiados para ver el detalle exacto.';
         } else if (logs.contains('Status HTTP: 400')) {
           errorDetail = '❌ DATOS INVÁLIDOS (HTTP 400)\n\n'
-                       'Los datos enviados no cumplen con el formato esperado.\n'
-                       'Revisa los logs copiados para más detalles.';
+              'Los datos enviados no cumplen con el formato esperado.\n'
+              'Revisa los logs copiados para más detalles.';
         } else {
-          errorDetail = 'Sincronización falló. Revisa el Output de Flutter para ver:\n'
-                       '  - Status HTTP (200, 400, 422, 500, etc.)\n'
-                       '  - Response Body del servidor\n'
-                       'Errores comunes:\n'
-                       '  • 400: Datos mal formateados\n'
-                       '  • 422: Validación fallida (ej: matrícula duplicada)\n'
-                       '  • 401/403: Token expirado\n'
-                       '  • 500: Error interno del servidor';
+          errorDetail =
+              'Sincronización falló. Revisa el Output de Flutter para ver:\n'
+              '  - Status HTTP (200, 400, 422, 500, etc.)\n'
+              '  - Response Body del servidor\n'
+              'Errores comunes:\n'
+              '  • 400: Datos mal formateados\n'
+              '  • 422: Validación fallida (ej: matrícula duplicada)\n'
+              '  • 401/403: Token expirado\n'
+              '  • 500: Error interno del servidor';
         }
         throw Exception(errorDetail);
       }
-      
+
       syncSuccess = true;
       return 'Carnet sincronizado exitosamente';
     });
@@ -196,7 +201,8 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
     setState(() => _steps.add(step));
 
     try {
-      await Future.delayed(const Duration(milliseconds: 300)); // Para visualización
+      await Future.delayed(
+          const Duration(milliseconds: 300)); // Para visualización
       final result = await action();
       step.complete(true, result);
     } catch (e) {
@@ -209,7 +215,7 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
   @override
   Widget build(BuildContext context) {
     final hasErrors = _steps.any((s) => !s.success);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Diagnóstico de Sincronización'),
@@ -243,13 +249,17 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
                     Icon(
                       widget.carnet.synced ? Icons.check_circle : Icons.pending,
                       size: 16,
-                      color: widget.carnet.synced ? Colors.green : Colors.orange,
+                      color:
+                          widget.carnet.synced ? Colors.green : Colors.orange,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      widget.carnet.synced ? 'Sincronizado' : 'Pendiente de sincronización',
+                      widget.carnet.synced
+                          ? 'Sincronizado'
+                          : 'Pendiente de sincronización',
                       style: TextStyle(
-                        color: widget.carnet.synced ? Colors.green : Colors.orange,
+                        color:
+                            widget.carnet.synced ? Colors.green : Colors.orange,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -258,7 +268,7 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
               ],
             ),
           ),
-          
+
           // Lista de pasos de diagnóstico
           Expanded(
             child: ListView.builder(
@@ -270,7 +280,7 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
               },
             ),
           ),
-          
+
           // Botones de acción
           if (_completed)
             Container(
@@ -335,7 +345,8 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
                       ],
                     ),
                   ] else ...[
-                    const Icon(Icons.check_circle, size: 48, color: Colors.green),
+                    const Icon(Icons.check_circle,
+                        size: 48, color: Colors.green),
                     const SizedBox(height: 8),
                     const Text(
                       '✅ Sincronización completada',
@@ -361,9 +372,8 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
                 ],
               ),
             ),
-          
-          if (_running)
-            const LinearProgressIndicator(),
+
+          if (_running) const LinearProgressIndicator(),
         ],
       ),
     );
@@ -372,7 +382,7 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
   Widget _buildStepCard(DiagnosticStep step, int number) {
     IconData icon;
     Color color;
-    
+
     if (step.isRunning) {
       icon = Icons.hourglass_empty;
       color = Colors.blue;
@@ -383,7 +393,7 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
       icon = Icons.error;
       color = Colors.red;
     }
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -439,7 +449,9 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
                   step.message!,
                   style: TextStyle(
                     fontSize: 13,
-                    color: step.success ? Colors.green.shade800 : Colors.red.shade800,
+                    color: step.success
+                        ? Colors.green.shade800
+                        : Colors.red.shade800,
                   ),
                 ),
               ),
@@ -453,10 +465,11 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
   void _copyLogsToClipboard() {
     final buffer = StringBuffer();
     buffer.writeln('=== DIAGNÓSTICO DE SINCRONIZACIÓN ===');
-    buffer.writeln('Carnet: ${widget.carnet.matricula} - ${widget.carnet.nombreCompleto}');
+    buffer.writeln(
+        'Carnet: ${widget.carnet.matricula} - ${widget.carnet.nombreCompleto}');
     buffer.writeln('Fecha: ${DateTime.now()}');
     buffer.writeln('');
-    
+
     for (var i = 0; i < _steps.length; i++) {
       final step = _steps[i];
       buffer.writeln('${i + 1}. ${step.title}');
@@ -466,18 +479,18 @@ class _SyncDiagnosticScreenState extends State<SyncDiagnosticScreen> {
       }
       buffer.writeln('');
     }
-    
+
     // Agregar logs detallados del SyncLogger
     buffer.writeln('');
     buffer.writeln('=== LOGS DETALLADOS ===');
     buffer.writeln(SyncLogger.getAllLogs());
-    
+
     Clipboard.setData(ClipboardData(text: buffer.toString()));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Logs copiados al portapapeles')),
     );
   }
-  
+
   Future<void> _saveLogsToFile() async {
     final filePath = await SyncLogger.saveToFile();
     if (filePath != null && mounted) {

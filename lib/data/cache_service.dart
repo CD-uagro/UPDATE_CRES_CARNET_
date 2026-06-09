@@ -11,7 +11,8 @@ class CacheService {
   static const Duration _cacheDuration = Duration(minutes: 15);
 
   /// Guarda un carnet en caché con timestamp
-  static Future<void> saveCarnet(String matricula, Map<String, dynamic> data) async {
+  static Future<void> saveCarnet(
+      String matricula, Map<String, dynamic> data) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final cacheData = {
@@ -52,7 +53,8 @@ class CacheService {
   }
 
   /// Guarda notas en caché
-  static Future<void> saveNotas(String matricula, List<Map<String, dynamic>> notas) async {
+  static Future<void> saveNotas(
+      String matricula, List<Map<String, dynamic>> notas) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final cacheData = {
@@ -93,7 +95,8 @@ class CacheService {
   }
 
   /// Guarda citas en caché
-  static Future<void> saveCitas(String matricula, List<Map<String, dynamic>> citas) async {
+  static Future<void> saveCitas(
+      String matricula, List<Map<String, dynamic>> citas) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final cacheData = {
@@ -152,8 +155,8 @@ class CacheService {
       final prefs = await SharedPreferences.getInstance();
       final keys = prefs.getKeys();
       for (final key in keys) {
-        if (key.startsWith(_carnetPrefix) || 
-            key.startsWith(_notasPrefix) || 
+        if (key.startsWith(_carnetPrefix) ||
+            key.startsWith(_notasPrefix) ||
             key.startsWith(_citasPrefix)) {
           await prefs.remove(key);
         }

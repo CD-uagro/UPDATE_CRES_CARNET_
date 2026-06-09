@@ -2,7 +2,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'screens/auth_gate.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'data/db.dart' as DB;
@@ -16,20 +15,22 @@ import 'ui/mobile_adaptive.dart'; // Detección de plataforma
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Cargar información de versión
   await VersionService().loadVersion();
-  
+
   // Inicializar servicio de sincronización automática
   AutoSyncService.instance.initialize();
-  
+
   // Diagnóstico de API_BASE_URL solo en debug
   if (kDebugMode) {
-    const String apiBase = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://fastapi-backend-o7ks.onrender.com');
+    const String apiBase = String.fromEnvironment('API_BASE_URL',
+        defaultValue: 'https://fastapi-backend-o7ks.onrender.com');
     print('API_BASE_URL=' + apiBase);
-    print('Platform: ${MobileAdaptive.isMobilePlatform ? "Mobile (Android/iOS)" : "Desktop (Windows/Linux/Mac)"}');
+    print(
+        'Platform: ${MobileAdaptive.isMobilePlatform ? "Mobile (Android/iOS)" : "Desktop (Windows/Linux/Mac)"}');
   }
-  
+
   final db = DB.AppDatabase(); // Instancia de la base local (Drift)
   runApp(MyApp(db: db));
 }
@@ -46,19 +47,20 @@ class MyApp extends StatelessWidget {
       // Aplicamos el tema institucional UAGro
       // En móvil (Android/iOS) se aplicará automáticamente el tema adaptable
       theme: AppTheme.light,
-      
+
       // Builder para aplicar adaptación móvil al tema
       builder: (context, child) {
         if (child == null) return const SizedBox.shrink();
-        
+
         // Si es móvil, aplicar tema adaptado
         if (MobileAdaptive.isMobilePlatform) {
           return Theme(
-            data: AppThemeMobile.adaptiveTheme(context, baseTheme: AppTheme.light),
+            data: AppThemeMobile.adaptiveTheme(context,
+                baseTheme: AppTheme.light),
             child: child,
           );
         }
-        
+
         // En desktop, usar tema original sin cambios
         return child;
       },
@@ -96,5 +98,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-

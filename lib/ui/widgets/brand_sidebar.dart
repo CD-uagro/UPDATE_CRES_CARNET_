@@ -24,12 +24,12 @@ class BrandSidebar extends StatelessWidget {
         children: [
           // Espaciado superior
           const SizedBox(height: 24),
-          
+
           // Logo institucional UAGro
           maybeUAGroLogo(size: 56),
-          
+
           const SizedBox(height: 16),
-          
+
           // Texto institucional
           const Text(
             'UAGro',
@@ -40,9 +40,9 @@ class BrandSidebar extends StatelessWidget {
               letterSpacing: 1.2,
             ),
           ),
-          
+
           const SizedBox(height: 4),
-          
+
           const Text(
             'Medicina',
             style: TextStyle(
@@ -52,9 +52,9 @@ class BrandSidebar extends StatelessWidget {
               letterSpacing: 0.8,
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Separador decorativo
           Container(
             width: 40,
@@ -64,9 +64,9 @@ class BrandSidebar extends StatelessWidget {
               borderRadius: BorderRadius.circular(1),
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Indicadores visuales (decorativos)
           Expanded(
             child: Column(
@@ -80,7 +80,7 @@ class BrandSidebar extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Espaciado inferior
           const SizedBox(height: 24),
         ],
@@ -123,7 +123,7 @@ class BrandSidebarRed extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 24),
-          
+
           // Logo con fondo blanco para contraste
           Container(
             padding: const EdgeInsets.all(8),
@@ -133,9 +133,9 @@ class BrandSidebarRed extends StatelessWidget {
             ),
             child: maybeUAGroLogo(size: 40),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           const Text(
             'UAGro',
             style: TextStyle(
@@ -145,9 +145,9 @@ class BrandSidebarRed extends StatelessWidget {
               letterSpacing: 1.2,
             ),
           ),
-          
+
           const SizedBox(height: 4),
-          
+
           const Text(
             'Medicina',
             style: TextStyle(
@@ -157,9 +157,9 @@ class BrandSidebarRed extends StatelessWidget {
               letterSpacing: 0.8,
             ),
           ),
-          
+
           const Spacer(),
-          
+
           // Indicador de alerta
           Container(
             width: 32,
@@ -174,7 +174,7 @@ class BrandSidebarRed extends StatelessWidget {
               size: 18,
             ),
           ),
-          
+
           const SizedBox(height: 24),
         ],
       ),

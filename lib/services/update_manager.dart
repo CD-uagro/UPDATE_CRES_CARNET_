@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'update_service.dart';
 import 'update_downloader.dart';
+import 'version_comparator.dart';
 import '../ui/update_dialog.dart';
 
 /// Coordinador principal del sistema de actualizaciones
@@ -12,19 +15,20 @@ class UpdateManager {
 
   final String currentVersion;
   final int currentBuild;
-  final UpdateDownloader _downloader = UpdateDownloader();
+  final UpdateDownloader _downloader;
 
   UpdateManager({
     required this.currentVersion,
     required this.currentBuild,
-  });
+    UpdateDownloader? downloader,
+  }) : _downloader = downloader ?? UpdateDownloader();
 
   /// Verifica actualizaciones automáticamente
-  /// 
+  ///
   /// Se ejecuta al iniciar la app si:
   /// - Ha pasado más de 24 horas desde la última verificación
   /// - El usuario no omitió esta versión previamente
-  /// 
+  ///
   /// [context] - BuildContext para mostrar diálogos
   /// [force] - Forzar verificación ignorando intervalos (default: false)
   Future<void> checkForUpdatesAutomatic(
@@ -64,8 +68,10 @@ class UpdateManager {
       final latestVersion = response.latestVersion!;
 
       // Verificar si el usuario omitió esta versión
-      if (!latestVersion.isMandatory && await _isVersionSkipped(latestVersion.version)) {
-        debugPrint('⏭️ Versión ${latestVersion.version} omitida por el usuario');
+      if (!latestVersion.isMandatory &&
+          await _isVersionSkipped(latestVersion.version)) {
+        debugPrint(
+            '⏭️ Versión ${latestVersion.version} omitida por el usuario');
         return;
       }
 
@@ -80,7 +86,7 @@ class UpdateManager {
   }
 
   /// Verifica actualizaciones manualmente (desde botón en UI)
-  /// 
+  ///
   /// [context] - BuildContext para mostrar diálogos
   /// [showNoUpdateMessage] - Mostrar mensaje si no hay actualizaciones (default: true)
   Future<void> checkForUpdatesManual(
@@ -132,7 +138,8 @@ class UpdateManager {
   }
 
   /// Muestra el diálogo de actualización y maneja la respuesta
-  Future<void> _showUpdateDialog(BuildContext context, VersionInfo versionInfo) async {
+  Future<void> _showUpdateDialog(
+      BuildContext context, VersionInfo versionInfo) async {
     final result = await UpdateDialog.show(
       context,
       versionInfo: versionInfo,
@@ -153,13 +160,14 @@ class UpdateManager {
   }
 
   /// Inicia el proceso de actualización
-  Future<void> _startUpdate(BuildContext context, VersionInfo versionInfo) async {
+  Future<void> _startUpdate(
+      BuildContext context, VersionInfo versionInfo) async {
     try {
       debugPrint('🚀 Iniciando proceso de actualización...');
 
       // Crear diálogo de progreso
       double currentProgress = 0.0;
-      
+
       if (context.mounted) {
         showDialog(
           context: context,
@@ -178,8 +186,8 @@ class UpdateManager {
       }
 
       // Descargar instalador
-      final installerPath = await _downloader.downloadUpdate(
-        downloadUrl: versionInfo.downloadUrl,
+      final installerPath = await prepareUpdateForInstall(
+        versionInfo,
         onProgress: (received, total) {
           currentProgress = received / total;
           // Actualizar UI del diálogo
@@ -192,16 +200,26 @@ class UpdateManager {
 
       debugPrint('✅ Descarga completada: $installerPath');
 
-      // Verificar checksum si está disponible
+      // Verificar checksum antes de permitir ejecutar el instalador.
+      final expectedChecksum = versionInfo.checksum?.trim();
+      if (expectedChecksum == null || expectedChecksum.isEmpty) {
+        debugPrint('Checksum inválido. La actualización no se ejecutará.');
+        debugPrint('   Motivo: la metadata remota no incluye sha256/checksum.');
+        await _deleteDownloadedUpdate(installerPath);
+        throw Exception('Checksum inválido. La actualización no se ejecutará.');
+      }
+
       if (versionInfo.checksum != null && versionInfo.checksum!.isNotEmpty) {
         debugPrint('🔐 Verificando integridad del archivo...');
         final isValid = await _downloader.verifyChecksum(
           installerPath,
-          versionInfo.checksum!,
+          expectedChecksum,
         );
 
         if (!isValid) {
-          throw Exception('El archivo descargado está corrupto');
+          await _deleteDownloadedUpdate(installerPath);
+          throw Exception(
+              'Checksum inválido. La actualización no se ejecutará.');
         }
       }
 
@@ -216,7 +234,7 @@ class UpdateManager {
       }
     } catch (e) {
       debugPrint('❌ Error en actualización: $e');
-      
+
       // Cerrar diálogo de progreso si está abierto
       if (context.mounted) {
         Navigator.of(context).pop();
@@ -229,6 +247,65 @@ class UpdateManager {
   }
 
   /// Muestra confirmación final antes de instalar
+  Future<String> prepareUpdateForInstall(
+    VersionInfo versionInfo, {
+    ProgressCallback? onProgress,
+  }) async {
+    final comparison =
+        compareSemanticVersions(versionInfo.version, currentVersion);
+    if (comparison <= 0) {
+      debugPrint(
+        'Actualización bloqueada: ${versionInfo.version} no es mayor que $currentVersion',
+      );
+      throw Exception(
+        'Actualización bloqueada: el servidor anuncia una versión anterior o igual.',
+      );
+    }
+
+    final installerPath = await _downloader.downloadUpdate(
+      downloadUrl: versionInfo.downloadUrl,
+      onProgress: onProgress,
+    );
+
+    debugPrint('Descarga completada: $installerPath');
+
+    final expectedChecksum = versionInfo.checksum?.trim();
+    if (expectedChecksum == null || expectedChecksum.isEmpty) {
+      debugPrint('Checksum inválido. La actualización no se ejecutará.');
+      debugPrint('   Motivo: la metadata remota no incluye sha256/checksum.');
+      await _deleteDownloadedUpdate(installerPath);
+      throw Exception('Checksum inválido. La actualización no se ejecutará.');
+    }
+
+    debugPrint('Verificando integridad del archivo...');
+    final isValid = await _downloader.verifyChecksum(
+      installerPath,
+      expectedChecksum,
+    );
+
+    if (!isValid) {
+      await _deleteDownloadedUpdate(installerPath);
+      throw Exception('Checksum inválido. La actualización no se ejecutará.');
+    }
+
+    debugPrint('Instalador validado/listo para ejecutar: $installerPath');
+    return installerPath;
+  }
+
+  Future<void> _deleteDownloadedUpdate(String installerPath) async {
+    try {
+      final file = File(installerPath);
+      if (await file.exists()) {
+        await file.delete();
+        debugPrint(
+            'Archivo de actualización eliminado por checksum inválido: $installerPath');
+      }
+    } catch (e) {
+      debugPrint(
+          'No se pudo eliminar el archivo de actualización inválido: $e');
+    }
+  }
+
   Future<void> _showInstallConfirmation(
     BuildContext context,
     String installerPath,

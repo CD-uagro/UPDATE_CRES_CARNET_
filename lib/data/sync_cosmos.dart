@@ -1,4 +1,4 @@
-﻿import 'db.dart' as DB;
+import 'db.dart' as DB;
 import 'cloudant_query.dart';
 
 /// Sube todas las notas locales a Cosmos en contenedor carnets_id (PK /id).

@@ -1,6 +1,18 @@
 # Script de Verificación Post-Deploy
 # Ejecutar DESPUÉS de que Render muestre "Live"
 
+param(
+    [switch]$AllowLegacy,
+    [switch]$ConfirmProduction
+)
+
+# LEGACY SCRIPT - No usar para releases actuales. Usar version.json + tool/sync_version.ps1 + build_installer.ps1.
+if (-not $AllowLegacy -or -not $ConfirmProduction) {
+    Write-Error "Script legacy bloqueado: consulta backend productivo y hace POST de prueba a /updates/publish."
+    Write-Host "Uso consciente: .\verificar_deploy.ps1 -AllowLegacy -ConfirmProduction" -ForegroundColor Yellow
+    exit 1
+}
+
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  VERIFICACION POST-DEPLOY" -ForegroundColor Cyan

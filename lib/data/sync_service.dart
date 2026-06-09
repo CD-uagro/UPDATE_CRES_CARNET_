@@ -15,7 +15,8 @@ class SyncService {
     // Sincronizar carnets pendientes
     try {
       final pendingRecords = await db.getPendingRecords();
-      print('📊 SyncService: ${pendingRecords.length} registros pendientes para sincronizar');
+      print(
+          '📊 SyncService: ${pendingRecords.length} registros pendientes para sincronizar');
       for (final record in pendingRecords) {
         try {
           final carnetData = {
@@ -26,6 +27,8 @@ class SyncService {
             'sexo': record.sexo,
             'categoria': record.categoria,
             'programa': record.programa,
+            'escuelaUnidadAcademica': record.escuelaUnidadAcademica,
+            'grupo': record.grupo,
             'discapacidad': record.discapacidad,
             'tipoDiscapacidad': record.tipoDiscapacidad,
             'alergias': record.alergias,
@@ -45,16 +48,19 @@ class SyncService {
           if (success) {
             await db.markRecordAsSynced(record.id);
             result.recordsSynced++;
-            print('[SYNC] ✅ Carnet ${record.matricula} sincronizado exitosamente');
+            print(
+                '[SYNC] ✅ Carnet ${record.matricula} sincronizado exitosamente');
           } else {
             result.recordsErrors++;
-            print('[SYNC] ❌ Error al sincronizar carnet ${record.matricula}: respuesta false');
+            print(
+                '[SYNC] ❌ Error al sincronizar carnet ${record.matricula}: respuesta false');
             // Log adicional para debugging - verificar consola de logs para más detalles
             print('[SYNC] 🔍 Detalles del carnet fallido:');
             print('   - Matrícula: ${record.matricula}');
             print('   - ID local: ${record.id}');
             print('   - Nombre: ${record.nombreCompleto}');
-            print('[SYNC] 💡 Revisa los logs de [CARNET] arriba para ver el error HTTP específico');
+            print(
+                '[SYNC] 💡 Revisa los logs de [CARNET] arriba para ver el error HTTP específico');
           }
         } catch (e) {
           print('Error syncing record ${record.id}: $e');
@@ -68,7 +74,8 @@ class SyncService {
     // Sincronizar notas pendientes
     try {
       final pendingNotes = await db.getPendingNotes();
-      print('📝 SyncService: ${pendingNotes.length} notas pendientes para sincronizar');
+      print(
+          '📝 SyncService: ${pendingNotes.length} notas pendientes para sincronizar');
       for (final note in pendingNotes) {
         try {
           final success = await ApiService.pushSingleNote(
@@ -86,7 +93,8 @@ class SyncService {
             print('[SYNC] ✅ Nota ${note.id} sincronizada exitosamente');
           } else {
             result.notesErrors++;
-            print('[SYNC] ❌ Error al sincronizar nota ${note.id}: respuesta false');
+            print(
+                '[SYNC] ❌ Error al sincronizar nota ${note.id}: respuesta false');
           }
         } catch (e) {
           print('[SYNC] ❌ Error syncing note ${note.id}: $e');
@@ -100,7 +108,8 @@ class SyncService {
     // Sincronizar citas pendientes
     try {
       final pendingCitas = await db.getPendingCitas();
-      print('📅 SyncService: ${pendingCitas.length} citas pendientes para sincronizar');
+      print(
+          '📅 SyncService: ${pendingCitas.length} citas pendientes para sincronizar');
       for (final cita in pendingCitas) {
         try {
           final citaData = {
@@ -121,7 +130,8 @@ class SyncService {
             print('[SYNC] ✅ Cita ${cita.id} sincronizada exitosamente');
           } else {
             result.citasErrors++;
-            print('[SYNC] ❌ Error al sincronizar cita ${cita.id}: respuesta null');
+            print(
+                '[SYNC] ❌ Error al sincronizar cita ${cita.id}: respuesta null');
           }
         } catch (e) {
           print('[SYNC] ❌ Error syncing cita ${cita.id}: $e');
@@ -135,7 +145,8 @@ class SyncService {
     // Sincronizar vacunaciones pendientes
     try {
       final pendingVacunaciones = await db.getPendingVacunaciones();
-      print('💉 SyncService: ${pendingVacunaciones.length} vacunaciones pendientes para sincronizar');
+      print(
+          '💉 SyncService: ${pendingVacunaciones.length} vacunaciones pendientes para sincronizar');
       for (final vac in pendingVacunaciones) {
         try {
           final vacData = {
@@ -157,7 +168,8 @@ class SyncService {
             print('[SYNC] ✅ Vacunación ${vac.id} sincronizada exitosamente');
           } else {
             result.vacunacionesErrors++;
-            print('[SYNC] ❌ Error al sincronizar vacunación ${vac.id}: respuesta null');
+            print(
+                '[SYNC] ❌ Error al sincronizar vacunación ${vac.id}: respuesta null');
           }
         } catch (e) {
           print('[SYNC] ❌ Error syncing vacunación ${vac.id}: $e');
@@ -175,28 +187,31 @@ class SyncService {
   /// Intenta sincronizar un carnet específico
   Future<bool> syncRecord(HealthRecord record) async {
     try {
-       final carnetData = {
-         'matricula': record.matricula,
-         'nombreCompleto': record.nombreCompleto,
-         'correo': record.correo,
-         'edad': record.edad,
-         'sexo': record.sexo,
-         'categoria': record.categoria,
-         'programa': record.programa,
-         'discapacidad': record.discapacidad,
-         'tipoDiscapacidad': record.tipoDiscapacidad,
-         'alergias': record.alergias,
-         'tipoSangre': record.tipoSangre,
-         'enfermedadCronica': record.enfermedadCronica,
-         'unidadMedica': record.unidadMedica,
-         'numeroAfiliacion': record.numeroAfiliacion,
-         'usoSeguroUniversitario': record.usoSeguroUniversitario,
-         'donante': record.donante,
-         'emergenciaTelefono': record.emergenciaTelefono,
-         'emergenciaContacto': record.emergenciaContacto,
-         'expedienteNotas': record.expedienteNotas,
-         'expedienteAdjuntos': record.expedienteAdjuntos,
-       };      final success = await ApiService.pushSingleCarnet(carnetData);
+      final carnetData = {
+        'matricula': record.matricula,
+        'nombreCompleto': record.nombreCompleto,
+        'correo': record.correo,
+        'edad': record.edad,
+        'sexo': record.sexo,
+        'categoria': record.categoria,
+        'programa': record.programa,
+        'escuelaUnidadAcademica': record.escuelaUnidadAcademica,
+        'grupo': record.grupo,
+        'discapacidad': record.discapacidad,
+        'tipoDiscapacidad': record.tipoDiscapacidad,
+        'alergias': record.alergias,
+        'tipoSangre': record.tipoSangre,
+        'enfermedadCronica': record.enfermedadCronica,
+        'unidadMedica': record.unidadMedica,
+        'numeroAfiliacion': record.numeroAfiliacion,
+        'usoSeguroUniversitario': record.usoSeguroUniversitario,
+        'donante': record.donante,
+        'emergenciaTelefono': record.emergenciaTelefono,
+        'emergenciaContacto': record.emergenciaContacto,
+        'expedienteNotas': record.expedienteNotas,
+        'expedienteAdjuntos': record.expedienteAdjuntos,
+      };
+      final success = await ApiService.pushSingleCarnet(carnetData);
       if (success) {
         await db.markRecordAsSynced(record.id);
       }
@@ -239,29 +254,23 @@ class SyncResult {
   int vacunacionesSynced = 0;
   int vacunacionesErrors = 0;
 
-  bool get hasErrors => 
-      recordsErrors > 0 || 
-      notesErrors > 0 || 
-      citasErrors > 0 || 
+  bool get hasErrors =>
+      recordsErrors > 0 ||
+      notesErrors > 0 ||
+      citasErrors > 0 ||
       vacunacionesErrors > 0;
-      
-  bool get hasSuccess => 
-      recordsSynced > 0 || 
-      notesSynced > 0 || 
-      citasSynced > 0 || 
+
+  bool get hasSuccess =>
+      recordsSynced > 0 ||
+      notesSynced > 0 ||
+      citasSynced > 0 ||
       vacunacionesSynced > 0;
-  
-  int get totalSynced => 
-      recordsSynced + 
-      notesSynced + 
-      citasSynced + 
-      vacunacionesSynced;
-      
-  int get totalErrors => 
-      recordsErrors + 
-      notesErrors + 
-      citasErrors + 
-      vacunacionesErrors;
+
+  int get totalSynced =>
+      recordsSynced + notesSynced + citasSynced + vacunacionesSynced;
+
+  int get totalErrors =>
+      recordsErrors + notesErrors + citasErrors + vacunacionesErrors;
 
   int get totalPending => totalSynced + totalErrors;
 

@@ -1,4 +1,4 @@
-﻿import 'dart:developer' as dev;
+import 'dart:developer' as dev;
 import 'api_service.dart';
 
 /// Sube una sola nota a FastAPI de inmediato (best-effort).

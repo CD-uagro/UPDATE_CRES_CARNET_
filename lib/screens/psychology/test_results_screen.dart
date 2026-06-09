@@ -8,8 +8,6 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import '../../models/psychological_test.dart';
-import '../../models/hamilton_test.dart';
-import '../../ui/brand.dart';
 import '../../ui/uagro_theme.dart' as theme;
 import '../../data/api_service.dart';
 
@@ -47,7 +45,7 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
 
   Future<void> _offerAutoSave() async {
     if (!mounted) return;
-    
+
     setState(() {
       _autoSaveOffered = true;
     });
@@ -105,13 +103,15 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: widget.result.alertaCritica ? Colors.red[700] : theme.UAGroColors.azulMarino,
+        backgroundColor: widget.result.alertaCritica
+            ? Colors.red[700]
+            : theme.UAGroColors.azulMarino,
         iconTheme: IconThemeData(color: Colors.white),
         elevation: 0,
         actions: [
           IconButton(
             onPressed: _generatingPdf ? null : _generatePdf,
-            icon: _generatingPdf 
+            icon: _generatingPdf
                 ? SizedBox(
                     width: 20,
                     height: 20,
@@ -131,8 +131,12 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              widget.result.alertaCritica ? Colors.red[700]! : theme.UAGroColors.azulMarino,
-              widget.result.alertaCritica ? Colors.red[400]! : theme.UAGroColors.azulMarino.withOpacity(0.8),
+              widget.result.alertaCritica
+                  ? Colors.red[700]!
+                  : theme.UAGroColors.azulMarino,
+              widget.result.alertaCritica
+                  ? Colors.red[400]!
+                  : theme.UAGroColors.azulMarino.withOpacity(0.8),
               Colors.grey[50]!,
             ],
           ),
@@ -191,22 +195,23 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
                       // Información del paciente y test
                       _buildInfoCard(),
                       const SizedBox(height: 16),
-                      
+
                       // Gráfico de resultados
                       _buildResultChart(),
                       const SizedBox(height: 16),
-                      
+
                       // Interpretación clínica
                       _buildInterpretationCard(),
                       const SizedBox(height: 16),
-                      
+
                       // Recomendaciones
                       _buildRecommendationsCard(),
                       const SizedBox(height: 16),
-                      
+
                       // Detalle de respuestas
                       _buildResponsesCard(),
-                      const SizedBox(height: 80), // Espacio para botones flotantes
+                      const SizedBox(
+                          height: 80), // Espacio para botones flotantes
                     ],
                   ),
                 ),
@@ -220,7 +225,7 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
         children: [
           FloatingActionButton.extended(
             onPressed: _savingToExpediente ? null : _saveToExpediente,
-            icon: _savingToExpediente 
+            icon: _savingToExpediente
                 ? SizedBox(
                     width: 20,
                     height: 20,
@@ -230,7 +235,8 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
                     ),
                   )
                 : Icon(Icons.save),
-            label: Text(_savingToExpediente ? 'Guardando...' : 'Guardar en Expediente'),
+            label: Text(
+                _savingToExpediente ? 'Guardando...' : 'Guardar en Expediente'),
             backgroundColor: Colors.green[600],
             foregroundColor: Colors.white,
           ),
@@ -303,7 +309,8 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _buildInfoItem('Paciente', widget.result.nombrePaciente),
+                  child:
+                      _buildInfoItem('Paciente', widget.result.nombrePaciente),
                 ),
                 Expanded(
                   child: _buildInfoItem('Matrícula', widget.result.matricula),
@@ -317,7 +324,8 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
                   child: _buildInfoItem('Psicólogo', widget.result.psicologo),
                 ),
                 Expanded(
-                  child: _buildInfoItem('Puntuación', '${widget.result.puntuacionTotal} pts'),
+                  child: _buildInfoItem(
+                      'Puntuación', '${widget.result.puntuacionTotal} pts'),
                 ),
               ],
             ),
@@ -394,12 +402,28 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
                   switch (value.toInt()) {
-                    case 0: return Text('Normal\n0-7', textAlign: TextAlign.center, style: TextStyle(fontSize: 10));
-                    case 1: return Text('Leve\n8-13', textAlign: TextAlign.center, style: TextStyle(fontSize: 10));
-                    case 2: return Text('Moderada\n14-18', textAlign: TextAlign.center, style: TextStyle(fontSize: 10));
-                    case 3: return Text('Severa\n19-22', textAlign: TextAlign.center, style: TextStyle(fontSize: 10));
-                    case 4: return Text('Muy Severa\n23+', textAlign: TextAlign.center, style: TextStyle(fontSize: 10));
-                    default: return Text('');
+                    case 0:
+                      return Text('Normal\n0-7',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10));
+                    case 1:
+                      return Text('Leve\n8-13',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10));
+                    case 2:
+                      return Text('Moderada\n14-18',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10));
+                    case 3:
+                      return Text('Severa\n19-22',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10));
+                    case 4:
+                      return Text('Muy Severa\n23+',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10));
+                    default:
+                      return Text('');
                   }
                 },
               ),
@@ -416,11 +440,28 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
           ),
           borderData: FlBorderData(show: false),
           barGroups: [
-            _buildBarGroup(0, 7, Colors.green[400]!, widget.result.puntuacionTotal <= 7),
-            _buildBarGroup(1, 13, Colors.yellow[600]!, widget.result.puntuacionTotal > 7 && widget.result.puntuacionTotal <= 13),
-            _buildBarGroup(2, 18, Colors.orange[600]!, widget.result.puntuacionTotal > 13 && widget.result.puntuacionTotal <= 18),
-            _buildBarGroup(3, 22, Colors.red[400]!, widget.result.puntuacionTotal > 18 && widget.result.puntuacionTotal <= 22),
-            _buildBarGroup(4, 25, Colors.red[700]!, widget.result.puntuacionTotal > 22),
+            _buildBarGroup(
+                0, 7, Colors.green[400]!, widget.result.puntuacionTotal <= 7),
+            _buildBarGroup(
+                1,
+                13,
+                Colors.yellow[600]!,
+                widget.result.puntuacionTotal > 7 &&
+                    widget.result.puntuacionTotal <= 13),
+            _buildBarGroup(
+                2,
+                18,
+                Colors.orange[600]!,
+                widget.result.puntuacionTotal > 13 &&
+                    widget.result.puntuacionTotal <= 18),
+            _buildBarGroup(
+                3,
+                22,
+                Colors.red[400]!,
+                widget.result.puntuacionTotal > 18 &&
+                    widget.result.puntuacionTotal <= 22),
+            _buildBarGroup(
+                4, 25, Colors.red[700]!, widget.result.puntuacionTotal > 22),
           ],
         ),
       );
@@ -428,7 +469,8 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
     return Container(); // Para otros tests
   }
 
-  BarChartGroupData _buildBarGroup(int x, double height, Color color, bool isUserScore) {
+  BarChartGroupData _buildBarGroup(
+      int x, double height, Color color, bool isUserScore) {
     return BarChartGroupData(
       x: x,
       barRods: [
@@ -480,13 +522,13 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: widget.result.alertaCritica 
-                    ? Colors.red[50] 
+                color: widget.result.alertaCritica
+                    ? Colors.red[50]
                     : Colors.blue[50],
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: widget.result.alertaCritica 
-                      ? Colors.red[200]! 
+                  color: widget.result.alertaCritica
+                      ? Colors.red[200]!
                       : Colors.blue[200]!,
                 ),
               ),
@@ -589,7 +631,7 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
               final question = widget.test.questions.firstWhere(
                 (q) => q.id == response.questionId,
               );
-              
+
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
@@ -623,9 +665,11 @@ class _TestResultsScreenState extends State<TestResultsScreen> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: theme.UAGroColors.azulMarino.withOpacity(0.1),
+                            color:
+                                theme.UAGroColors.azulMarino.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -677,11 +721,12 @@ ${widget.result.alertaCritica ? '🚨 ALERTA CRÍTICA: Este caso requiere atenci
 DETALLE DE RESPUESTAS:
 
 ${widget.result.responses.asMap().entries.map((entry) {
-  final index = entry.key;
-  final response = entry.value;
-  final question = widget.test.questions.firstWhere((q) => q.id == response.questionId);
-  return '${index + 1}. ${question.text}\n   Respuesta: ${response.response} (${response.score} pts)\n';
-}).join('\n')}
+        final index = entry.key;
+        final response = entry.value;
+        final question = widget.test.questions
+            .firstWhere((q) => q.id == response.questionId);
+        return '${index + 1}. ${question.text}\n   Respuesta: ${response.response} (${response.score} pts)\n';
+      }).join('\n')}
 ═══════════════════════════════════════════════
       ''';
 
@@ -736,7 +781,7 @@ ${widget.result.responses.asMap().entries.map((entry) {
 
     try {
       final pdf = pw.Document();
-      
+
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
@@ -764,18 +809,20 @@ ${widget.result.responses.asMap().entries.map((entry) {
                     ),
                     pw.Text(
                       'Centro Regional de Educación Superior - Llano Largo',
-                      style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+                      style: const pw.TextStyle(
+                          fontSize: 12, color: PdfColors.grey700),
                     ),
                     pw.Text(
                       'Departamento Psicopedagógico',
-                      style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+                      style: const pw.TextStyle(
+                          fontSize: 12, color: PdfColors.grey700),
                     ),
                   ],
                 ),
               ),
-              
+
               pw.SizedBox(height: 30),
-              
+
               // Título del reporte
               pw.Center(
                 child: pw.Text(
@@ -787,15 +834,16 @@ ${widget.result.responses.asMap().entries.map((entry) {
                   ),
                 ),
               ),
-              
+
               pw.SizedBox(height: 30),
-              
+
               // Información del paciente
               pw.Container(
                 padding: const pw.EdgeInsets.all(15),
                 decoration: pw.BoxDecoration(
                   border: pw.Border.all(color: PdfColors.grey400),
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
+                  borderRadius:
+                      const pw.BorderRadius.all(pw.Radius.circular(5)),
                 ),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -816,7 +864,8 @@ ${widget.result.responses.asMap().entries.map((entry) {
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
-                              pw.Text('Nombre: ${widget.result.nombrePaciente}'),
+                              pw.Text(
+                                  'Nombre: ${widget.result.nombrePaciente}'),
                               pw.Text('Matrícula: ${widget.result.matricula}'),
                             ],
                           ),
@@ -825,7 +874,8 @@ ${widget.result.responses.asMap().entries.map((entry) {
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
-                              pw.Text('Fecha: ${DateFormat('dd/MM/yyyy').format(widget.result.fechaAplicacion)}'),
+                              pw.Text(
+                                  'Fecha: ${DateFormat('dd/MM/yyyy').format(widget.result.fechaAplicacion)}'),
                               pw.Text('Psicólogo: ${widget.result.psicologo}'),
                             ],
                           ),
@@ -835,9 +885,9 @@ ${widget.result.responses.asMap().entries.map((entry) {
                   ],
                 ),
               ),
-              
+
               pw.SizedBox(height: 20),
-              
+
               // Información del test
               pw.Text(
                 'INSTRUMENTO APLICADO',
@@ -849,10 +899,13 @@ ${widget.result.responses.asMap().entries.map((entry) {
               ),
               pw.SizedBox(height: 10),
               pw.Text('${widget.test.name}'),
-              pw.Text('Puntuación Total: ${widget.result.puntuacionTotal} puntos'),
-              
+              pw.Text(
+                  'Puntuación Total: ${widget.result.puntuacionTotal} puntos'),
+
               // Mostrar subescalas si existen (para DASS-21)
-              if (widget.result.datosAdicionales != null && widget.result.datosAdicionales!['subscaleScores'] != null) ...[
+              if (widget.result.datosAdicionales != null &&
+                  widget.result.datosAdicionales!['subscaleScores'] !=
+                      null) ...[
                 pw.SizedBox(height: 10),
                 pw.Text(
                   'Severidad: ${widget.result.datosAdicionales!['severity']}',
@@ -863,13 +916,17 @@ ${widget.result.responses.asMap().entries.map((entry) {
                   'Puntuaciones por Subescala:',
                   style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                 ),
-                ...(widget.result.datosAdicionales!['subscaleScores'] as Map<String, dynamic>).entries.map(
-                  (entry) => pw.Text('  • ${entry.key}: ${entry.value} puntos'),
-                ),
+                ...(widget.result.datosAdicionales!['subscaleScores']
+                        as Map<String, dynamic>)
+                    .entries
+                    .map(
+                      (entry) =>
+                          pw.Text('  • ${entry.key}: ${entry.value} puntos'),
+                    ),
               ],
-              
+
               pw.SizedBox(height: 20),
-              
+
               // Interpretación
               pw.Text(
                 'INTERPRETACIÓN CLÍNICA',
@@ -884,7 +941,8 @@ ${widget.result.responses.asMap().entries.map((entry) {
                 padding: const pw.EdgeInsets.all(10),
                 decoration: pw.BoxDecoration(
                   color: PdfColors.grey100,
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
+                  borderRadius:
+                      const pw.BorderRadius.all(pw.Radius.circular(5)),
                 ),
                 child: pw.Text(
                   widget.result.interpretacion,
@@ -892,9 +950,9 @@ ${widget.result.responses.asMap().entries.map((entry) {
                   textAlign: pw.TextAlign.justify,
                 ),
               ),
-              
+
               pw.SizedBox(height: 20),
-              
+
               // Recomendaciones
               pw.Text(
                 'RECOMENDACIONES',
@@ -909,7 +967,8 @@ ${widget.result.responses.asMap().entries.map((entry) {
                 padding: const pw.EdgeInsets.all(10),
                 decoration: pw.BoxDecoration(
                   color: PdfColors.orange50,
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
+                  borderRadius:
+                      const pw.BorderRadius.all(pw.Radius.circular(5)),
                 ),
                 child: pw.Text(
                   widget.result.recomendaciones,
@@ -917,7 +976,7 @@ ${widget.result.responses.asMap().entries.map((entry) {
                   textAlign: pw.TextAlign.justify,
                 ),
               ),
-              
+
               if (widget.result.alertaCritica) ...[
                 pw.SizedBox(height: 20),
                 pw.Container(
@@ -925,7 +984,8 @@ ${widget.result.responses.asMap().entries.map((entry) {
                   decoration: pw.BoxDecoration(
                     color: PdfColors.red100,
                     border: pw.Border.all(color: PdfColors.red300, width: 2),
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(5)),
                   ),
                   child: pw.Column(
                     children: [
@@ -940,16 +1000,17 @@ ${widget.result.responses.asMap().entries.map((entry) {
                       pw.SizedBox(height: 5),
                       pw.Text(
                         'Este resultado requiere atención inmediata y seguimiento especializado',
-                        style: pw.TextStyle(fontSize: 12, color: PdfColors.red600),
+                        style:
+                            pw.TextStyle(fontSize: 12, color: PdfColors.red600),
                         textAlign: pw.TextAlign.center,
                       ),
                     ],
                   ),
                 ),
               ],
-              
+
               pw.SizedBox(height: 40),
-              
+
               // Firma
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -968,7 +1029,8 @@ ${widget.result.responses.asMap().entries.map((entry) {
                       ),
                       pw.Text(
                         'Psicólogo Clínico',
-                        style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
+                        style: const pw.TextStyle(
+                            fontSize: 9, color: PdfColors.grey600),
                       ),
                     ],
                   ),
@@ -976,7 +1038,8 @@ ${widget.result.responses.asMap().entries.map((entry) {
                     children: [
                       pw.Text(
                         'Código de verificación:',
-                        style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+                        style: const pw.TextStyle(
+                            fontSize: 8, color: PdfColors.grey600),
                       ),
                       pw.Text(
                         widget.result.id.substring(0, 8).toUpperCase(),
@@ -997,17 +1060,19 @@ ${widget.result.responses.asMap().entries.map((entry) {
 
       // Generar bytes del PDF
       final pdfBytes = await pdf.save();
-      
+
       // Nombre del archivo
-      final fileName = 'Test_${widget.test.name.replaceAll(' ', '_')}_${widget.result.matricula}_${DateFormat('yyyyMMdd_HHmmss').format(widget.result.fechaAplicacion)}.pdf';
+      final fileName =
+          'Test_${widget.test.name.replaceAll(' ', '_')}_${widget.result.matricula}_${DateFormat('yyyyMMdd_HHmmss').format(widget.result.fechaAplicacion)}.pdf';
 
       // Guardar PDF localmente
       final baseDir = await getApplicationSupportDirectory();
-      final pdfDir = Directory(path.join(baseDir.path, 'tests_psicologicos', widget.result.matricula));
+      final pdfDir = Directory(path.join(
+          baseDir.path, 'tests_psicologicos', widget.result.matricula));
       if (!await pdfDir.exists()) {
         await pdfDir.create(recursive: true);
       }
-      
+
       final pdfFile = File(path.join(pdfDir.path, fileName));
       await pdfFile.writeAsBytes(pdfBytes);
 
@@ -1048,7 +1113,6 @@ ${widget.result.responses.asMap().entries.map((entry) {
           name: fileName,
         );
       }
-
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

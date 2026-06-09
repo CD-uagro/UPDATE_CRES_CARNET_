@@ -101,7 +101,7 @@ class UpdateDialog extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 16),
 
             // Changelog
@@ -194,7 +194,7 @@ class UpdateDialog extends StatelessWidget {
               style: TextStyle(color: Colors.grey[600]),
             ),
           ),
-        
+
         // Botón "Actualizar"
         ElevatedButton.icon(
           onPressed: onUpdate,

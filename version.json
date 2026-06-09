@@ -1,107 +1,22 @@
 {
-  "version": "2.4.18",
-  "buildNumber": 18,
-  "releaseDate": "2025-10-21",
-  "channel": "stable",
+  "version": "2.4.36",
+  "buildNumber": 36,
+  "releaseDate": "2026-06-08",
+  "channel": "internal",
   "minimumVersion": "2.0.0",
-  "download_url": "https://github.com/edukshare-max/UPDATE_CRES_CARNET_/raw/master/releases/installers/CRES_Carnets_Setup_v2.4.18.exe",
+  "artifact": {
+    "type": "exe",
+    "fileName": "CRES_Carnets_Setup_v2.4.36.exe",
+    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.4.36/CRES_Carnets_Setup_v2.4.36.exe",
+    "sha256": "0E1ACBBE6BEA4BD2AF4BC893AAFAC4A3630B7BD2D1A40E8D940838D5865BEB6C",
+    "fileSize": 13865834
+  },
   "changelog": [
-    {
-      "version": "2.4.18",
-      "date": "2025-10-21",
-      "changes": [
-        "🚀 Sistema mejorado de guardado de notas",
-        "🛡️ Protección contra guardados duplicados",
-        "💬 Feedback visual claro: verde (nube), naranja (local), rojo (error)",
-        "🔄 Botón inteligente con spinner durante guardado",
-        "📊 Sincronización con detalles de errores por nota"
-      ]
-    },
-    {
-      "version": "2.4.13",
-      "date": "2025-10-16",
-      "changes": [
-        "➕ Nueva pantalla dedicada para ver y sincronizar datos pendientes",
-        "🔍 Mejoras en logging de errores de sincronización para diagnóstico",
-        "📋 Vista detallada de carnets, notas, citas y vacunaciones pendientes",
-        "🔄 Botón dedicado de sincronización con contador de registros",
-        "✨ Interfaz mejorada para gestión de datos offline"
-      ]
-    },
-    {
-      "version": "2.4.12",
-      "date": "2025-10-13",
-      "changes": [
-        "Refresco automático de notas en la nube al volver a la pantalla",
-        "Botón manual de sincronización y limpieza con feedback inmediato",
-        "Invalidación de caché de notas tras cada subida para evitar listas vacías",
-        "Instalador Windows actualizado con mejoras de estabilidad"
-      ]
-    },
-    {
-      "version": "2.4.11",
-      "date": "2025-10-13",
-      "changes": [
-        "Sincronización de notas con createdAt preservado",
-        "Diagnósticos detallados para campos synced pendientes",
-        "Actualización de scripts de mantenimiento y verificación"
-      ]
-    },
-    {
-      "version": "2.4.10",
-      "date": "2025-10-13",
-      "changes": [
-        "Correcciones al pipeline de sincronización automática",
-        "Nuevo panel de limpieza de base de datos local",
-        "Mejor manejo de reconexión tras trabajar sin internet"
-      ]
-    },
-    {
-      "version": "2.4.9",
-      "date": "2025-10-12",
-      "changes": [
-        "Fix: Reconocimiento de notas antiguas pendientes de sincronizar",
-        "Logs detallados para flujos de subida y conciliación",
-        "Botón dedicado de sincronización manual"
-      ]
-    },
-    {
-      "version": "2.4.8",
-      "date": "2025-10-12",
-      "changes": [
-        "Fix: Logout offline estable",
-        "Limpieza guiada de base de datos local",
-        "Mejoras a instalador Windows sin privilegios elevados"
-      ]
-    },
-    {
-      "version": "2.3.2",
-      "date": "2025-10-10",
-      "changes": [
-        "Sistema de instalador profesional",
-        "88 instituciones UAGro implementadas",
-        "Autocompletado inteligente en panel admin",
-        "Sistema de autenticación completo",
-        "Modo híbrido online/offline"
-      ]
-    },
-    {
-      "version": "2.3.1",
-      "date": "2025-10-10",
-      "changes": [
-        "88 instituciones organizadas por categoría",
-        "Búsqueda fuzzy en selector de campus",
-        "Eliminado endpoint temporal de seguridad"
-      ]
-    },
-    {
-      "version": "2.0.0",
-      "date": "2025-10-09",
-      "changes": [
-        "Sistema de autenticación JWT",
-        "Modo híbrido inteligente",
-        "Sincronización automática"
-      ]
-    }
+    "Campos escuelaUnidadAcademica y grupo.",
+    "Guardia anti-downgrade.",
+    "Fuente unica de version.",
+    "Validacion SHA256 real.",
+    "Prueba integral segura del flujo de actualizacion.",
+    "Proteccion de scripts legacy."
   ]
 }

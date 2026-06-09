@@ -82,7 +82,8 @@ class AuthService {
 
   Future<void> setupPassword(String password) async {
     if (_orgMode) {
-      throw StateError('Modo organización activo: la contraseña se define en cres_pwd.json');
+      throw StateError(
+          'Modo organización activo: la contraseña se define en cres_pwd.json');
     }
     final salt = _randomBytes(16);
     final key = await _deriveKey(password, salt, _defaultIterations);
@@ -128,8 +129,10 @@ class AuthService {
     return List<int>.generate(length, (_) => r.nextInt(256));
   }
 
-  Future<List<int>> _deriveKey(String password, List<int> salt, int iterations) async {
-    final algo = Pbkdf2(macAlgorithm: Hmac.sha256(), iterations: iterations, bits: 256);
+  Future<List<int>> _deriveKey(
+      String password, List<int> salt, int iterations) async {
+    final algo =
+        Pbkdf2(macAlgorithm: Hmac.sha256(), iterations: iterations, bits: 256);
     final secretKey = await algo.deriveKey(
       secretKey: SecretKey(utf8.encode(password)),
       nonce: salt,
@@ -140,7 +143,9 @@ class AuthService {
   bool _constTimeEquals(List<int> a, List<int> b) {
     if (a.length != b.length) return false;
     int diff = 0;
-    for (int i = 0; i < a.length; i++) { diff |= a[i] ^ b[i]; }
+    for (int i = 0; i < a.length; i++) {
+      diff |= a[i] ^ b[i];
+    }
     return diff == 0;
   }
 }

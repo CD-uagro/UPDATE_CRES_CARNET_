@@ -211,6 +211,20 @@ if ($pubspecContent -match "version:\s*[\d\.]+\+\d+") {
 
 Set-Content $pubspecPath -Value $pubspecContent -Encoding UTF8 -NoNewline
 
+# LEGACY COMPATIBILITY - Para releases actuales usar version.json + tool/sync_version.ps1 + build_installer.ps1.
+# Si este script se usa todavia, delega la sincronizacion final al script canonico.
+$syncVersionScript = "tool\sync_version.ps1"
+if (Test-Path $syncVersionScript) {
+    Write-Info "`nSincronizando fuentes de version con $syncVersionScript..."
+    & powershell -ExecutionPolicy Bypass -File $syncVersionScript
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Error: $syncVersionScript fallo. Revisa version.json y vuelve a ejecutar la sincronizacion."
+        exit 1
+    }
+} else {
+    Write-Warning "No se encontro $syncVersionScript. Ejecuta manualmente la sincronizacion canonica antes de compilar."
+}
+
 # Resumen final
 Write-Host "`n========================================" -ForegroundColor Green
 Write-Host " ✅ ACTUALIZACIÓN COMPLETADA" -ForegroundColor Yellow

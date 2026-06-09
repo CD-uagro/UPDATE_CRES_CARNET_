@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
+import 'version_comparator.dart';
+
 /// Modelo para la información de versión
 class VersionInfo {
   final String version;
@@ -28,13 +30,13 @@ class VersionInfo {
   factory VersionInfo.fromJson(Map<String, dynamic> json) {
     return VersionInfo(
       version: json['version'],
-      buildNumber: json['build_number'],
-      releaseDate: json['release_date'],
-      downloadUrl: json['download_url'],
-      fileSize: json['file_size'],
-      checksum: json['checksum'],
-      isMandatory: json['is_mandatory'],
-      changelog: List<String>.from(json['changelog']),
+      buildNumber: json['build_number'] ?? json['buildNumber'],
+      releaseDate: json['release_date'] ?? json['releaseDate'],
+      downloadUrl: json['download_url'] ?? json['downloadUrl'],
+      fileSize: json['file_size'] ?? json['fileSize'],
+      checksum: json['sha256'] ?? json['checksum'],
+      isMandatory: json['is_mandatory'] ?? json['isMandatory'] ?? false,
+      changelog: List<String>.from(json['changelog'] ?? const []),
     );
   }
 }
@@ -70,8 +72,70 @@ class UpdateService {
   static const String baseUrl = 'https://fastapi-backend-o7ks.onrender.com';
   static const Duration timeout = Duration(seconds: 10);
 
+  static UpdateCheckResponse _guardAgainstDowngrade({
+    required UpdateCheckResponse response,
+    required String currentVersion,
+  }) {
+    final latestVersion = response.latestVersion;
+
+    if (latestVersion == null) {
+      if (response.updateAvailable) {
+        debugPrint(
+            '⚠️ Respuesta de actualización inválida: update_available=true sin latest_version');
+        return UpdateCheckResponse(
+          updateAvailable: false,
+          currentVersion: response.currentVersion,
+          latestVersion: null,
+          message: 'No se pudo validar la versión disponible.',
+        );
+      }
+
+      return response;
+    }
+
+    final comparison =
+        compareSemanticVersions(latestVersion.version, currentVersion);
+
+    if (comparison > 0) {
+      if (!response.updateAvailable) {
+        debugPrint(
+            '⚠️ Servidor reportó update_available=false, pero ${latestVersion.version} > $currentVersion');
+      }
+
+      return UpdateCheckResponse(
+        updateAvailable: true,
+        currentVersion: response.currentVersion,
+        latestVersion: latestVersion,
+        message: response.message,
+      );
+    }
+
+    if (comparison == 0) {
+      debugPrint(
+          '✅ App actualizada: servidor y cliente están en $currentVersion');
+      return UpdateCheckResponse(
+        updateAvailable: false,
+        currentVersion: response.currentVersion,
+        latestVersion: null,
+        message: 'Tu aplicación está actualizada.',
+      );
+    }
+
+    debugPrint(
+      '⚠️ Actualización bloqueada: el servidor anuncia ${latestVersion.version}, '
+      'pero la app instalada es $currentVersion',
+    );
+    return UpdateCheckResponse(
+      updateAvailable: false,
+      currentVersion: response.currentVersion,
+      latestVersion: null,
+      message:
+          'Actualización bloqueada: el servidor anuncia una versión anterior.',
+    );
+  }
+
   /// Verifica si hay actualizaciones disponibles
-  /// 
+  ///
   /// Compara la versión actual con la última disponible en el servidor
   /// Retorna [UpdateCheckResponse] con información de actualización
   static Future<UpdateCheckResponse> checkForUpdates({
@@ -81,7 +145,7 @@ class UpdateService {
   }) async {
     try {
       final url = Uri.parse('$baseUrl/updates/check');
-      
+
       final body = jsonEncode({
         'current_version': currentVersion,
         'current_build': currentBuild,
@@ -105,18 +169,24 @@ class UpdateService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final updateResponse = UpdateCheckResponse.fromJson(data);
-        
+        final updateResponse = _guardAgainstDowngrade(
+          response: UpdateCheckResponse.fromJson(data),
+          currentVersion: currentVersion,
+        );
+
         if (updateResponse.updateAvailable) {
-          debugPrint('✅ Actualización disponible: ${updateResponse.latestVersion?.version}');
+          debugPrint(
+              '✅ Actualización disponible: ${updateResponse.latestVersion?.version}');
         } else {
           debugPrint('✅ App actualizada - versión más reciente');
         }
-        
+
         return updateResponse;
       } else {
-        debugPrint('❌ Error al verificar actualizaciones: ${response.statusCode}');
-        throw Exception('Error al verificar actualizaciones: ${response.statusCode}');
+        debugPrint(
+            '❌ Error al verificar actualizaciones: ${response.statusCode}');
+        throw Exception(
+            'Error al verificar actualizaciones: ${response.statusCode}');
       }
     } on SocketException {
       debugPrint('⚠️ Sin conexión a internet');
@@ -131,33 +201,33 @@ class UpdateService {
   }
 
   /// Obtiene información de la última versión disponible
-  /// 
+  ///
   /// No requiere versión actual, solo retorna la última versión
   static Future<VersionInfo> getLatestVersion() async {
     try {
       final url = Uri.parse('$baseUrl/updates/latest');
-      
+
       debugPrint('📥 Obteniendo última versión...');
-      
-      final response = await http
-          .get(
-            url,
-            headers: {
-              'Accept': 'application/json',
-            },
-          )
-          .timeout(timeout);
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+        },
+      ).timeout(timeout);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final versionInfo = VersionInfo.fromJson(data);
-        
-        debugPrint('✅ Última versión: ${versionInfo.version} (Build ${versionInfo.buildNumber})');
-        
+
+        debugPrint(
+            '✅ Última versión: ${versionInfo.version} (Build ${versionInfo.buildNumber})');
+
         return versionInfo;
       } else {
         debugPrint('❌ Error al obtener última versión: ${response.statusCode}');
-        throw Exception('Error al obtener última versión: ${response.statusCode}');
+        throw Exception(
+            'Error al obtener última versión: ${response.statusCode}');
       }
     } on SocketException {
       debugPrint('⚠️ Sin conexión a internet');
@@ -169,7 +239,7 @@ class UpdateService {
   }
 
   /// Obtiene el changelog de versiones
-  /// 
+  ///
   /// [version] - Versión específica (opcional)
   /// [limit] - Cantidad de versiones a obtener (opcional)
   static Future<List<Map<String, dynamic>>> getChangelog({
@@ -178,33 +248,31 @@ class UpdateService {
   }) async {
     try {
       var url = Uri.parse('$baseUrl/updates/changelog');
-      
+
       // Agregar parámetros de query si existen
       final queryParams = <String, String>{};
       if (version != null) queryParams['version'] = version;
       if (limit != null) queryParams['limit'] = limit.toString();
-      
+
       if (queryParams.isNotEmpty) {
         url = url.replace(queryParameters: queryParams);
       }
 
       debugPrint('📜 Obteniendo changelog...');
-      
-      final response = await http
-          .get(
-            url,
-            headers: {
-              'Accept': 'application/json',
-            },
-          )
-          .timeout(timeout);
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+        },
+      ).timeout(timeout);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final versions = List<Map<String, dynamic>>.from(data['versions']);
-        
+
         debugPrint('✅ Changelog obtenido: ${data['total_versions']} versiones');
-        
+
         return versions;
       } else {
         debugPrint('❌ Error al obtener changelog: ${response.statusCode}');
@@ -220,10 +288,8 @@ class UpdateService {
   static Future<bool> checkServiceHealth() async {
     try {
       final url = Uri.parse('$baseUrl/updates/health');
-      
-      final response = await http
-          .get(url)
-          .timeout(Duration(seconds: 5));
+
+      final response = await http.get(url).timeout(Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

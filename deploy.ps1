@@ -49,10 +49,19 @@ param(
     [switch]$Patch,
     [string]$Message,
     [switch]$SkipUpload,
-    [switch]$SkipBackend
+    [switch]$SkipBackend,
+    [switch]$AllowLegacy,
+    [switch]$ConfirmProduction
 )
 
 # Colores y símbolos
+if (-not $AllowLegacy -or -not $ConfirmProduction) {
+    Write-Error "Script legacy bloqueado: puede compilar, generar instalador, crear release, actualizar backend y hacer push."
+    Write-Host "LEGACY SCRIPT - No usar para releases actuales. Usar version.json + tool/sync_version.ps1 + build_installer.ps1." -ForegroundColor Yellow
+    Write-Host "Uso consciente: .\deploy.ps1 -Patch -AllowLegacy -ConfirmProduction" -ForegroundColor Yellow
+    exit 1
+}
+
 $symbols = @{
     Check = [char]0x2713
     Cross = [char]0x2717

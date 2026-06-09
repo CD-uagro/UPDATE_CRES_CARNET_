@@ -5,5 +5,6 @@ const double kTabletMax = 1024;
 
 bool isMobile(BuildContext c) => MediaQuery.sizeOf(c).width < kMobileMax;
 bool isTablet(BuildContext c) =>
-    MediaQuery.sizeOf(c).width >= kMobileMax && MediaQuery.sizeOf(c).width < kTabletMax;
+    MediaQuery.sizeOf(c).width >= kMobileMax &&
+    MediaQuery.sizeOf(c).width < kTabletMax;
 bool isDesktop(BuildContext c) => MediaQuery.sizeOf(c).width >= kTabletMax;

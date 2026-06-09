@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../models/psychological_test.dart';
-import '../../models/hamilton_test.dart';
-import '../../ui/brand.dart';
 import '../../ui/uagro_theme.dart' as theme;
 import 'test_application_screen.dart';
 import '../dashboard_screen.dart';
@@ -37,11 +35,13 @@ class TestSelectionScreen extends StatelessWidget {
         actions: [
           // Botón de inicio sutil
           IconButton(
-            icon: const Icon(Icons.home_outlined, color: Colors.white70, size: 22),
+            icon: const Icon(Icons.home_outlined,
+                color: Colors.white70, size: 22),
             tooltip: 'Ir al inicio',
             onPressed: () {
               Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => DashboardScreen(db: db)),
+                MaterialPageRoute(
+                    builder: (context) => DashboardScreen(db: db)),
                 (route) => false,
               );
             },
@@ -153,34 +153,35 @@ class TestSelectionScreen extends StatelessWidget {
                         icon: Icons.mood_bad,
                         title: 'Escala de Depresión de Hamilton',
                         subtitle: 'HAM-D • 17 ítems • 10 min',
-                        description: 'Evaluación estándar de síntomas depresivos',
+                        description:
+                            'Evaluación estándar de síntomas depresivos',
                         color: Colors.blue[700]!,
                         testType: TestType.hamilton,
                         isImplemented: true,
                       ),
-                      
                       _buildTestCard(
                         context,
                         icon: Icons.psychology,
                         title: 'Inventario de Ansiedad de Beck',
                         subtitle: 'BAI • 21 ítems • 8 min',
-                        description: 'Evaluación de síntomas físicos de ansiedad',
+                        description:
+                            'Evaluación de síntomas físicos de ansiedad',
                         color: Colors.orange[700]!,
                         testType: TestType.bai,
                         isImplemented: true,
                       ),
-
                       _buildTestCard(
                         context,
                         icon: Icons.assessment,
                         title: 'DASS-21 (Depresión-Ansiedad-Estrés)',
                         subtitle: 'DASS-21 • 21 ítems • 10 min',
-                        description: 'Evaluación integral de depresión, ansiedad y estrés',
+                        description:
+                            'Evaluación integral de depresión, ansiedad y estrés',
                         color: Colors.purple[700]!,
-                        testType: TestType.narcisismo, // Usamos este enum temporalmente para DASS-21
+                        testType: TestType
+                            .narcisismo, // Usamos este enum temporalmente para DASS-21
                         isImplemented: true,
                       ),
-
                       _buildTestCard(
                         context,
                         icon: Icons.warning,
@@ -191,13 +192,13 @@ class TestSelectionScreen extends StatelessWidget {
                         testType: TestType.plutchik,
                         isImplemented: true,
                       ),
-
                       _buildTestCard(
                         context,
                         icon: Icons.work_off,
                         title: 'Inventario de Burnout de Maslach',
                         subtitle: 'MBI • 22 ítems • 12 min',
-                        description: 'Evaluación de síndrome de burnout laboral',
+                        description:
+                            'Evaluación de síndrome de burnout laboral',
                         color: Colors.green[700]!,
                         testType: TestType.mbi,
                         isImplemented: true,
@@ -230,33 +231,39 @@ class TestSelectionScreen extends StatelessWidget {
         elevation: 4,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: isImplemented ? () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => TestApplicationScreen(
-                  testType: testType,
-                  matricula: matricula,
-                  nombrePaciente: nombrePaciente,
-                ),
-              ),
-            );
-          } : null,
+          onTap: isImplemented
+              ? () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => TestApplicationScreen(
+                        testType: testType,
+                        matricula: matricula,
+                        nombrePaciente: nombrePaciente,
+                      ),
+                    ),
+                  );
+                }
+              : null,
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               color: Colors.white,
-              border: isImplemented ? null : Border.all(
-                color: Colors.grey[300]!,
-                width: 2,
-              ),
+              border: isImplemented
+                  ? null
+                  : Border.all(
+                      color: Colors.grey[300]!,
+                      width: 2,
+                    ),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isImplemented ? color.withOpacity(0.1) : Colors.grey[100],
+                    color: isImplemented
+                        ? color.withOpacity(0.1)
+                        : Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -278,13 +285,16 @@ class TestSelectionScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: isImplemented ? theme.UAGroColors.azulMarino : Colors.grey[500],
+                                color: isImplemented
+                                    ? theme.UAGroColors.azulMarino
+                                    : Colors.grey[500],
                               ),
                             ),
                           ),
                           if (!isImplemented)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.orange[100],
                                 borderRadius: BorderRadius.circular(8),
@@ -314,7 +324,9 @@ class TestSelectionScreen extends StatelessWidget {
                         description,
                         style: TextStyle(
                           fontSize: 14,
-                          color: isImplemented ? Colors.grey[600] : Colors.grey[400],
+                          color: isImplemented
+                              ? Colors.grey[600]
+                              : Colors.grey[400],
                         ),
                       ),
                     ],

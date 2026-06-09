@@ -1,6 +1,18 @@
 ﻿# Script para publicar v2.4.32 al sistema de actualizaciones
 # Ejecutar DESPUES de que Render funcione correctamente
 
+param(
+    [switch]$AllowLegacy,
+    [switch]$ConfirmProduction
+)
+
+# LEGACY SCRIPT - No usar para releases actuales. Usar version.json + tool/sync_version.ps1 + build_installer.ps1.
+if (-not $AllowLegacy -or -not $ConfirmProduction) {
+    Write-Error "Script legacy bloqueado: publica metadata v2.4.32 en backend productivo."
+    Write-Host "Uso consciente: .\publicar_v2.4.32.ps1 -AllowLegacy -ConfirmProduction" -ForegroundColor Yellow
+    exit 1
+}
+
 $ErrorActionPreference = "Stop"
 
 Write-Host "`n========================================" -ForegroundColor Cyan

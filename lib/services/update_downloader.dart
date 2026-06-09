@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:archive/archive_io.dart';
+import 'package:crypto/crypto.dart' as crypto;
 
 /// Callback para reportar progreso de descarga
 /// [received] - Bytes descargados
@@ -15,19 +16,21 @@ class UpdateDownloader {
   final Dio _dio;
   CancelToken? _cancelToken;
 
-  UpdateDownloader() : _dio = Dio(
-    BaseOptions(
-      connectTimeout: const Duration(minutes: 2),  // Tiempo para conectar
-      receiveTimeout: const Duration(minutes: 15), // Tiempo para recibir datos
-      sendTimeout: const Duration(minutes: 2),     // Tiempo para enviar
-    ),
-  );
+  UpdateDownloader()
+      : _dio = Dio(
+          BaseOptions(
+            connectTimeout: const Duration(minutes: 2), // Tiempo para conectar
+            receiveTimeout:
+                const Duration(minutes: 15), // Tiempo para recibir datos
+            sendTimeout: const Duration(minutes: 2), // Tiempo para enviar
+          ),
+        );
 
   /// Descarga el instalador de actualización
-  /// 
+  ///
   /// [downloadUrl] - URL del instalador
   /// [onProgress] - Callback para reportar progreso (opcional)
-  /// 
+  ///
   /// Retorna la ruta del archivo descargado
   Future<String> downloadUpdate({
     required String downloadUrl,
@@ -55,7 +58,7 @@ class UpdateDownloader {
           if (total != -1) {
             final progress = (received / total * 100).toStringAsFixed(0);
             debugPrint('   Progreso: $progress% ($received/$total bytes)');
-            
+
             onProgress?.call(received, total);
           }
         },
@@ -63,13 +66,14 @@ class UpdateDownloader {
           headers: {
             'Accept': 'application/octet-stream',
           },
-          receiveTimeout: const Duration(minutes: 15),  // Timeout generoso para archivos grandes
+          receiveTimeout: const Duration(
+              minutes: 15), // Timeout generoso para archivos grandes
           sendTimeout: const Duration(minutes: 2),
         ),
       );
 
       debugPrint('✅ Descarga completada: $savePath');
-      
+
       // Verificar que el archivo existe
       final file = File(savePath);
       if (!await file.exists()) {
@@ -111,15 +115,22 @@ class UpdateDownloader {
   }
 
   /// Verifica checksum SHA256 del archivo descargado
-  /// 
+  ///
   /// [filePath] - Ruta del archivo a verificar
   /// [expectedChecksum] - Checksum esperado (SHA256)
-  /// 
+  ///
   /// Retorna `true` si el checksum coincide, `false` en caso contrario
   Future<bool> verifyChecksum(String filePath, String expectedChecksum) async {
     try {
+      final normalizedExpected = expectedChecksum.trim().toLowerCase();
+      if (normalizedExpected.isEmpty) {
+        debugPrint('Checksum inválido. La actualización no se ejecutará.');
+        debugPrint('   Motivo: checksum esperado vacío');
+        return false;
+      }
+
       final file = File(filePath);
-      
+
       if (!await file.exists()) {
         debugPrint('❌ Archivo no encontrado para verificación');
         return false;
@@ -127,21 +138,20 @@ class UpdateDownloader {
 
       // Leer archivo y calcular SHA256
       final bytes = await file.readAsBytes();
-      
-      // Nota: Necesitarías importar crypto para esto
-      // import 'package:crypto/crypto.dart' as crypto;
-      // final digest = crypto.sha256.convert(bytes);
-      // final checksum = digest.toString();
-      
-      // Por ahora, simplificado (implementar con crypto después)
+      final digest = crypto.sha256.convert(bytes);
+      final checksum = digest.toString();
+
       debugPrint('🔐 Verificando checksum...');
       debugPrint('   Esperado: $expectedChecksum');
-      // debugPrint('   Calculado: $checksum');
-      
-      // return checksum.toLowerCase() == expectedChecksum.toLowerCase();
-      
-      // TODO: Implementar verificación real de checksum
-      return true;
+
+      debugPrint('   Calculado: $checksum');
+
+      final isValid = checksum.toLowerCase() == normalizedExpected;
+      if (!isValid) {
+        debugPrint('Checksum inválido. La actualización no se ejecutará.');
+      }
+
+      return isValid;
     } catch (e) {
       debugPrint('❌ Error al verificar checksum: $e');
       return false;
@@ -149,13 +159,14 @@ class UpdateDownloader {
   }
 
   /// Ejecuta el instalador descargado
-  /// 
+  ///
   /// [installerPath] - Ruta del instalador (puede ser ZIP o EXE)
   /// [closeApp] - Si debe cerrar la app después de ejecutar (default: true)
-  Future<void> executeInstaller(String installerPath, {bool closeApp = true}) async {
+  Future<void> executeInstaller(String installerPath,
+      {bool closeApp = true}) async {
     try {
       final file = File(installerPath);
-      
+
       if (!await file.exists()) {
         throw Exception('Instalador no encontrado: $installerPath');
       }
@@ -165,52 +176,55 @@ class UpdateDownloader {
       // Si es un ZIP, extraerlo primero
       if (installerPath.toLowerCase().endsWith('.zip')) {
         debugPrint('� Extrayendo archivo ZIP...');
-        
+
         final tempDir = await getTemporaryDirectory();
-        final extractDir = Directory(path.join(tempDir.path, 'cres_update_${DateTime.now().millisecondsSinceEpoch}'));
-        
+        final extractDir = Directory(path.join(tempDir.path,
+            'cres_update_${DateTime.now().millisecondsSinceEpoch}'));
+
         // Extraer ZIP
         await extractDir.create(recursive: true);
         final inputStream = InputFileStream(installerPath);
         final archive = ZipDecoder().decodeBuffer(inputStream);
-        
+
         for (final file in archive.files) {
           final filename = file.name;
           final data = file.content as List<int>;
           final outFile = File(path.join(extractDir.path, filename));
-          
+
           if (file.isFile) {
             await outFile.create(recursive: true);
             await outFile.writeAsBytes(data);
             debugPrint('   Extraído: $filename');
           } else {
-            await Directory(path.join(extractDir.path, filename)).create(recursive: true);
+            await Directory(path.join(extractDir.path, filename))
+                .create(recursive: true);
           }
         }
-        
+
         inputStream.close();
-        
+
         // Buscar el ejecutable principal
         final exeFiles = await extractDir
             .list(recursive: true)
-            .where((entity) => entity is File && entity.path.toLowerCase().endsWith('.exe'))
+            .where((entity) =>
+                entity is File && entity.path.toLowerCase().endsWith('.exe'))
             .map((entity) => entity as File)
             .toList();
-        
+
         if (exeFiles.isEmpty) {
           throw Exception('No se encontró ningún ejecutable en el ZIP');
         }
-        
+
         // Buscar el ejecutable principal (el más grande, que es la app)
         // Ignorar ejecutables pequeños como DLLs auxiliares
         exeFiles.sort((a, b) => b.lengthSync().compareTo(a.lengthSync()));
-        
+
         // Filtrar solo ejecutables > 10 MB (la app principal es ~35 MB)
         final mainExe = exeFiles.firstWhere(
           (exe) => exe.lengthSync() > 10 * 1024 * 1024,
           orElse: () => exeFiles.first,
         );
-        
+
         exePath = mainExe.path;
         debugPrint('✅ Archivo extraído');
         debugPrint('   Ejecutable principal: ${path.basename(exePath)}');
@@ -259,7 +273,8 @@ class UpdateDownloader {
               deleted++;
               debugPrint('   Eliminado: ${path.basename(file.path)}');
             } catch (e) {
-              debugPrint('   ⚠️ No se pudo eliminar: ${path.basename(file.path)}');
+              debugPrint(
+                  '   ⚠️ No se pudo eliminar: ${path.basename(file.path)}');
             }
           }
         }

@@ -1,6 +1,17 @@
 # Script para subir actualización al servidor
 # v2.4.30 - Búsqueda por nombre
 
+param(
+    [switch]$AllowLegacy
+)
+
+# LEGACY SCRIPT - No usar para releases actuales. Usar version.json + tool/sync_version.ps1 + build_installer.ps1.
+if (-not $AllowLegacy) {
+    Write-Error "Script legacy bloqueado: genera ZIP/metadata antigua."
+    Write-Host "Uso consciente: .\upload_update.ps1 -AllowLegacy" -ForegroundColor Yellow
+    exit 1
+}
+
 $VERSION = "2.4.30"
 $BUILD = 30
 $RELEASE_DATE = Get-Date -Format "yyyy-MM-dd"

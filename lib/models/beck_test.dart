@@ -13,294 +13,274 @@ class BeckAnxietyInventory extends PsychologicalTest {
   String get name => "Inventario de Ansiedad de Beck (BAI)";
 
   @override
-  String get description => 
-    "Cuestionario de autoevaluación que mide la intensidad de síntomas de ansiedad. "
-    "Consta de 21 preguntas sobre síntomas comunes de ansiedad.";
+  String get description =>
+      "Cuestionario de autoevaluación que mide la intensidad de síntomas de ansiedad. "
+      "Consta de 21 preguntas sobre síntomas comunes de ansiedad.";
 
   @override
-  String get instructions => 
-    "A continuación encontrará una lista de síntomas comunes de la ansiedad. "
-    "Lea cada uno de los ítems atentamente e indique cuánto le ha afectado "
-    "en la ÚLTIMA SEMANA INCLUYENDO HOY.";
+  String get instructions =>
+      "A continuación encontrará una lista de síntomas comunes de la ansiedad. "
+      "Lea cada uno de los ítems atentamente e indique cuánto le ha afectado "
+      "en la ÚLTIMA SEMANA INCLUYENDO HOY.";
 
   @override
   Duration get estimatedDuration => const Duration(minutes: 8);
 
   @override
   List<TestQuestion> get questions => [
-    TestQuestion(
-      id: "bai1",
-      text: "Torpe o entumecido",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai2",
-      text: "Acalorado",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai3",
-      text: "Con temblor en las piernas",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai4",
-      text: "Incapaz de relajarse",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai5",
-      text: "Con temor a que ocurra lo peor",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai6",
-      text: "Mareado, o que se le va la cabeza",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai7",
-      text: "Con latidos del corazón fuertes y acelerados",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai8",
-      text: "Inestable",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai9",
-      text: "Atemorizado o asustado",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai10",
-      text: "Nervioso",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai11",
-      text: "Con sensación de bloqueo",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai12",
-      text: "Con temblores en las manos",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai13",
-      text: "Inquieto, inseguro",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai14",
-      text: "Con miedo a perder el control",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai15",
-      text: "Con sensación de ahogo",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai16",
-      text: "Con temor a morir",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai17",
-      text: "Con miedo",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai18",
-      text: "Con problemas digestivos",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai19",
-      text: "Con desvanecimientos",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai20",
-      text: "Con rubor facial",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-
-    TestQuestion(
-      id: "bai21",
-      text: "Con sudores, fríos o calientes",
-      responseType: ResponseType.likert,
-      options: [
-        "0 - En absoluto",
-        "1 - Levemente (no me molesta mucho)",
-        "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
-        "3 - Gravemente (casi no pude soportarlo)"
-      ],
-      scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
-    ),
-  ];
+        TestQuestion(
+          id: "bai1",
+          text: "Torpe o entumecido",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai2",
+          text: "Acalorado",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai3",
+          text: "Con temblor en las piernas",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai4",
+          text: "Incapaz de relajarse",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai5",
+          text: "Con temor a que ocurra lo peor",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai6",
+          text: "Mareado, o que se le va la cabeza",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai7",
+          text: "Con latidos del corazón fuertes y acelerados",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai8",
+          text: "Inestable",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai9",
+          text: "Atemorizado o asustado",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai10",
+          text: "Nervioso",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai11",
+          text: "Con sensación de bloqueo",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai12",
+          text: "Con temblores en las manos",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai13",
+          text: "Inquieto, inseguro",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai14",
+          text: "Con miedo a perder el control",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai15",
+          text: "Con sensación de ahogo",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai16",
+          text: "Con temor a morir",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai17",
+          text: "Con miedo",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai18",
+          text: "Con problemas digestivos",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai19",
+          text: "Con desvanecimientos",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai20",
+          text: "Con rubor facial",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+        TestQuestion(
+          id: "bai21",
+          text: "Con sudores, fríos o calientes",
+          responseType: ResponseType.likert,
+          options: [
+            "0 - En absoluto",
+            "1 - Levemente (no me molesta mucho)",
+            "2 - Moderadamente (fue muy desagradable pero pude soportarlo)",
+            "3 - Gravemente (casi no pude soportarlo)"
+          ],
+          scoreMapping: {"0": 0, "1": 1, "2": 2, "3": 3},
+        ),
+      ];
 
   @override
   TestResult calculateResult({
@@ -335,7 +315,8 @@ class BeckAnxietyInventory extends PsychologicalTest {
           "interferir con las actividades cotidianas. Se recomienda atención profesional.";
     } else if (totalScore <= 63) {
       severity = "Ansiedad Severa";
-      interpretation = "Síntomas severos de ansiedad que probablemente interfieren "
+      interpretation =
+          "Síntomas severos de ansiedad que probablemente interfieren "
           "de manera significativa con el funcionamiento diario. "
           "Se requiere intervención profesional inmediata.";
       alertaCritica = true;
@@ -418,7 +399,6 @@ class BeckAnxietyInventory extends PsychologicalTest {
     return recommendations;
   }
 
-  @override
   Map<String, dynamic> toJson() {
     return {
       'testType': testType.toString(),

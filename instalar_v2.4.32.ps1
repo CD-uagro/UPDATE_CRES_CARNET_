@@ -1,6 +1,17 @@
 # Script de Instalación Rápida - CRES Carnets v2.4.32
 # Copia este script junto con el ZIP a la PC de destino y ejecútalo
 
+param(
+    [switch]$AllowLegacyInstall
+)
+
+# LEGACY SCRIPT - No usar para releases actuales. Usar version.json + tool/sync_version.ps1 + build_installer.ps1.
+if (-not $AllowLegacyInstall) {
+    Write-Error "Script legacy bloqueado: instala una version antigua y reemplaza la carpeta local."
+    Write-Host "Uso consciente: .\instalar_v2.4.32.ps1 -AllowLegacyInstall" -ForegroundColor Yellow
+    exit 1
+}
+
 $VERSION = "2.4.32"
 $ZIP_FILE = "CRES_Carnets_Windows_v2.4.32.zip"
 $INSTALL_DIR = "$env:LOCALAPPDATA\CRES_Carnets"

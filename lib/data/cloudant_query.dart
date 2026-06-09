@@ -1,4 +1,4 @@
-﻿import 'api_service.dart';
+import 'api_service.dart';
 
 /// Clase de compatibilidad para mantener nombres históricos en el código.
 /// Ahora toda la lógica apunta a FastAPI usando ApiService.

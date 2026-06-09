@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+// ignore_for_file: invalid_null_aware_operator, dead_null_aware_expression, unnecessary_null_comparison, unnecessary_non_null_assertion
+
+import 'package:flutter/material.dart';
 import '../data/db.dart';
 import 'package:cres_carnets_ibmcloud/ui/uagro_widgets.dart';
 import '../ui/responsive.dart';
@@ -26,8 +28,8 @@ class _ListScreenState extends State<ListScreen> {
 
     final searchLower = _searchText.toLowerCase();
     return records.where((r) {
-      final matriculaMatch = (r.matricula ?? '').toLowerCase().contains(searchLower);
-      final nombreMatch = (r.nombreCompleto ?? '').toLowerCase().contains(searchLower);
+      final matriculaMatch = r.matricula.toLowerCase().contains(searchLower);
+      final nombreMatch = r.nombreCompleto.toLowerCase().contains(searchLower);
       return matriculaMatch || nombreMatch;
     }).toList();
   }
@@ -35,11 +37,13 @@ class _ListScreenState extends State<ListScreen> {
   @override
   Widget build(BuildContext context) {
     final mobile = isMobile(context);
-    
+
     return Scaffold(
-      appBar: uagroAppBar('CRES Carnets', 'Listado de expedientes', null, context, widget.db),
+      appBar: uagroAppBar(
+          'CRES Carnets', 'Listado de expedientes', null, context, widget.db),
       body: Padding(
-        padding: EdgeInsets.fromLTRB(mobile ? 8 : 16, mobile ? 8 : 16, mobile ? 8 : 16, mobile ? 16 : 24),
+        padding: EdgeInsets.fromLTRB(mobile ? 8 : 16, mobile ? 8 : 16,
+            mobile ? 8 : 16, mobile ? 16 : 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -50,7 +54,7 @@ class _ListScreenState extends State<ListScreen> {
                 subtitle: 'Expediente de salud universitario',
               ),
             if (!mobile) const SizedBox(height: 16),
-            
+
             // Campo de búsqueda
             Padding(
               padding: EdgeInsets.only(bottom: mobile ? 8 : 12),
@@ -82,7 +86,7 @@ class _ListScreenState extends State<ListScreen> {
                 },
               ),
             ),
-            
+
             Expanded(
               child: SectionCard(
                 icon: Icons.list_alt_outlined,
@@ -117,14 +121,20 @@ class _ListScreenState extends State<ListScreen> {
                         return ListTile(
                           leading: CircleAvatar(
                             radius: 20,
-                            backgroundColor: (r.synced ? cs.primary : cs.secondary).withOpacity(.12),
+                            backgroundColor:
+                                (r.synced ? cs.primary : cs.secondary)
+                                    .withOpacity(.12),
                             child: Icon(
                               r.synced ? Icons.cloud_done : Icons.cloud_off,
                               color: r.synced ? cs.primary : cs.secondary,
                             ),
                           ),
-                          title: Text(r.nombreCompleto?.trim().isEmpty == true ? '—' : (r.nombreCompleto ?? '—'),
-                              style: const TextStyle(fontWeight: FontWeight.w600)),
+                          title: Text(
+                              r.nombreCompleto?.trim().isEmpty == true
+                                  ? '—'
+                                  : (r.nombreCompleto ?? '—'),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600)),
                           subtitle: Text(
                             'Matrícula: ${r.matricula?.trim().isEmpty == true ? "—" : (r.matricula ?? "—")} · ${r.programa?.trim().isEmpty == true ? "—" : (r.programa ?? "—")}',
                           ),
@@ -133,11 +143,13 @@ class _ListScreenState extends State<ListScreen> {
                             children: [
                               if ((r.tipoSangre ?? '').isNotEmpty)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(999),
                                     color: cs.primary.withOpacity(.08),
-                                    border: Border.all(color: cs.primary.withOpacity(.22)),
+                                    border: Border.all(
+                                        color: cs.primary.withOpacity(.22)),
                                   ),
                                   child: Text(
                                     r.tipoSangre!,
@@ -185,10 +197,13 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inbox_outlined, size: 48, color: cs.primary.withOpacity(.5)),
+          Icon(Icons.inbox_outlined,
+              size: 48, color: cs.primary.withOpacity(.5)),
           const SizedBox(height: 12),
           Text('No hay registros aún.',
-              style: TextStyle(color: cs.onSurface.withOpacity(.7), fontWeight: FontWeight.w600)),
+              style: TextStyle(
+                  color: cs.onSurface.withOpacity(.7),
+                  fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           Text(
             'Captura tu primer expediente desde la pantalla de formulario.',
@@ -242,9 +257,13 @@ class _RecordDetailSheet extends StatelessWidget {
                         children: [
                           CircleAvatar(
                             radius: 22,
-                            backgroundColor: (record.synced ? cs.primary : cs.secondary).withOpacity(.12),
+                            backgroundColor:
+                                (record.synced ? cs.primary : cs.secondary)
+                                    .withOpacity(.12),
                             child: Icon(
-                              record.synced ? Icons.cloud_done : Icons.cloud_off,
+                              record.synced
+                                  ? Icons.cloud_done
+                                  : Icons.cloud_off,
                               color: record.synced ? cs.primary : cs.secondary,
                             ),
                           ),
@@ -254,26 +273,32 @@ class _RecordDetailSheet extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  (record.nombreCompleto == null || record.nombreCompleto!.trim().isEmpty)
+                                  (record.nombreCompleto == null ||
+                                          record.nombreCompleto!.trim().isEmpty)
                                       ? '—'
                                       : record.nombreCompleto!,
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   'Matrícula: ${record.matricula ?? "—"} · ${record.programa ?? "—"}',
-                                  style: TextStyle(color: cs.onSurface.withOpacity(.7)),
+                                  style: TextStyle(
+                                      color: cs.onSurface.withOpacity(.7)),
                                 ),
                               ],
                             ),
                           ),
                           if ((record.tipoSangre ?? '').isNotEmpty)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(999),
                                 color: cs.primary.withOpacity(.08),
-                                border: Border.all(color: cs.primary.withOpacity(.22)),
+                                border: Border.all(
+                                    color: cs.primary.withOpacity(.22)),
                               ),
                               child: Text(
                                 record.tipoSangre!,
@@ -333,7 +358,8 @@ class _RecordDetailSheet extends StatelessWidget {
                   title: 'Contacto de emergencia',
                   child: _KVGroup(rows: [
                     _KVP('Teléfono de urgencia', record.emergenciaTelefono),
-                    _KVP('Nombre/parentesco/domicilio', record.emergenciaContacto),
+                    _KVP('Nombre/parentesco/domicilio',
+                        record.emergenciaContacto),
                   ]),
                 ),
 
@@ -346,7 +372,8 @@ class _RecordDetailSheet extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(
-                      (record.expedienteNotas == null || record.expedienteNotas!.trim().isEmpty)
+                      (record.expedienteNotas == null ||
+                              record.expedienteNotas!.trim().isEmpty)
                           ? '—'
                           : record.expedienteNotas!,
                       style: const TextStyle(height: 1.3),
@@ -403,5 +430,3 @@ class _KVP {
   final String? v;
   _KVP(this.k, this.v);
 }
-
-

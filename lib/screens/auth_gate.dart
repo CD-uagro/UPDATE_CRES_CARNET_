@@ -1,4 +1,4 @@
-﻿// lib/screens/auth_gate.dart
+// lib/screens/auth_gate.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../security/auth_service.dart';
@@ -84,7 +84,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     // En modo corporativo no se mostrará esta rama porque _hasPassword será true
     final p1 = _pwd.text.trim(), p2 = _pwd2.text.trim();
     if (p1.length < 8) {
-      setState(() => _error = 'La contraseña debe tener al menos 8 caracteres.');
+      setState(
+          () => _error = 'La contraseña debe tener al menos 8 caracteres.');
       return;
     }
     if (p1 != p2) {
@@ -172,17 +173,18 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                     TextField(
                       controller: _pwd,
                       obscureText: !_showPwd,
-                      textInputAction:
-                          _hasPassword ? TextInputAction.done : TextInputAction.next,
+                      textInputAction: _hasPassword
+                          ? TextInputAction.done
+                          : TextInputAction.next,
                       decoration: const InputDecoration(
                         labelText: 'Contraseña',
                         border: OutlineInputBorder(),
                       ).copyWith(
                         suffixIcon: IconButton(
-                          onPressed: () =>
-                              setState(() => _showPwd = !_showPwd),
-                          icon: Icon(
-                              _showPwd ? Icons.visibility_off : Icons.visibility),
+                          onPressed: () => setState(() => _showPwd = !_showPwd),
+                          icon: Icon(_showPwd
+                              ? Icons.visibility_off
+                              : Icons.visibility),
                           tooltip: _showPwd ? 'Ocultar' : 'Mostrar',
                         ),
                       ),
@@ -225,9 +227,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                       child: FilledButton.icon(
                         onPressed: _hasPassword ? _login : _createPassword,
                         icon: Icon(_hasPassword ? Icons.login : Icons.check),
-                        label: Text(_hasPassword
-                            ? 'Ingresar'
-                            : 'Guardar contraseña'),
+                        label: Text(
+                            _hasPassword ? 'Ingresar' : 'Guardar contraseña'),
                       ),
                     ),
                   ],
@@ -247,5 +248,3 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     );
   }
 }
-
-

@@ -11,7 +11,8 @@ part 'db.g.dart';
 
 class HealthRecords extends Table {
   IntColumn get id => integer().autoIncrement()();
-  DateTimeColumn get timestamp => dateTime().nullable()(); // la estamos guardando con Value(...)
+  DateTimeColumn get timestamp =>
+      dateTime().nullable()(); // la estamos guardando con Value(...)
   TextColumn get matricula => text()();
   TextColumn get nombreCompleto => text()();
   TextColumn get correo => text()();
@@ -19,6 +20,9 @@ class HealthRecords extends Table {
   TextColumn get sexo => text().nullable()();
   TextColumn get categoria => text().nullable()();
   TextColumn get programa => text().nullable()();
+  TextColumn get escuelaUnidadAcademica =>
+      text().withDefault(const Constant('No especificada'))();
+  TextColumn get grupo => text().withDefault(const Constant(''))();
   TextColumn get discapacidad => text().nullable()();
   TextColumn get tipoDiscapacidad => text().nullable()();
   TextColumn get alergias => text().nullable()();
@@ -32,17 +36,19 @@ class HealthRecords extends Table {
   TextColumn get emergenciaContacto => text().nullable()();
   TextColumn get expedienteNotas => text().nullable()();
   TextColumn get expedienteAdjuntos => text().nullable()();
-  BoolColumn get synced => boolean().withDefault(const Constant(false))(); // Estado de sincronización
+  BoolColumn get synced => boolean()
+      .withDefault(const Constant(false))(); // Estado de sincronización
 }
 
 class Notes extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get matricula => text()();           // FK lógica con HealthRecords.matricula
+  TextColumn get matricula => text()(); // FK lógica con HealthRecords.matricula
   TextColumn get departamento => text()();
   TextColumn get tratante => text().nullable()();
   TextColumn get cuerpo => text()();
   DateTimeColumn get createdAt => dateTime().nullable()();
-  BoolColumn get synced => boolean().withDefault(const Constant(false))(); // Estado de sincronización
+  BoolColumn get synced => boolean()
+      .withDefault(const Constant(false))(); // Estado de sincronización
 }
 
 // Nueva tabla para vacunaciones pendientes de sincronización
@@ -64,7 +70,7 @@ class VacunacionesPendientes extends Table {
 // Nueva tabla para citas
 class Citas extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get matricula => text()();           // FK lógica con HealthRecords.matricula
+  TextColumn get matricula => text()(); // FK lógica con HealthRecords.matricula
   DateTimeColumn get inicio => dateTime()();
   DateTimeColumn get fin => dateTime()();
   TextColumn get motivo => text()();
@@ -84,7 +90,7 @@ class AppDatabase extends _$AppDatabase {
 
   // **SUBE** la versión para forzar migración y crear tablas nuevas
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   // Crea y migra esquemas
   @override
@@ -99,7 +105,8 @@ class AppDatabase extends _$AppDatabase {
           }
           // Agregar campos synced
           if (from < 3) {
-            await m.addColumn(healthRecords, healthRecords.synced as GeneratedColumn);
+            await m.addColumn(
+                healthRecords, healthRecords.synced as GeneratedColumn);
             await m.addColumn(notes, notes.synced as GeneratedColumn);
           }
           // Agregar tabla citas
@@ -109,6 +116,12 @@ class AppDatabase extends _$AppDatabase {
           // Agregar tabla vacunacionesPendientes
           if (from < 5) {
             await m.createTable(vacunacionesPendientes);
+          }
+          // Agregar campos academicos multicampus
+          if (from < 6) {
+            await m.addColumn(
+                healthRecords, healthRecords.escuelaUnidadAcademica);
+            await m.addColumn(healthRecords, healthRecords.grupo);
           }
         },
       );
@@ -123,28 +136,32 @@ class AppDatabase extends _$AppDatabase {
 
   // Búsquedas
   Future<HealthRecord?> getRecordByMatricula(String matricula) async {
-    final query = select(healthRecords)..where((tbl) => tbl.matricula.equals(matricula));
+    final query = select(healthRecords)
+      ..where((tbl) => tbl.matricula.equals(matricula));
     final results = await query.get();
     return results.isEmpty ? null : results.first;
   }
 
   Future<List<Note>> getNotesForMatricula(String matricula) async {
-    final query = select(notes)..where((tbl) => tbl.matricula.equals(matricula));
+    final query = select(notes)
+      ..where((tbl) => tbl.matricula.equals(matricula));
     return await query.get();
   }
 
   Future<List<Cita>> getCitasForMatricula(String matricula) async {
-    final query = select(citas)..where((tbl) => tbl.matricula.equals(matricula))
+    final query = select(citas)
+      ..where((tbl) => tbl.matricula.equals(matricula))
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.inicio)]);
     return await query.get();
   }
 
   // Métodos de sincronización
   Future<List<HealthRecord>> getPendingRecords() async {
-    final query = select(healthRecords)..where((tbl) => tbl.synced.equals(false));
+    final query = select(healthRecords)
+      ..where((tbl) => tbl.synced.equals(false));
     return await query.get();
   }
-  
+
   // Método para debug: obtener TODOS los carnets con su estado de sincronización
   Future<List<HealthRecord>> getAllRecordsWithSyncStatus() async {
     return await select(healthRecords).get();
@@ -164,7 +181,7 @@ class AppDatabase extends _$AppDatabase {
     await (update(healthRecords)..where((tbl) => tbl.id.equals(recordId)))
         .write(HealthRecordsCompanion(synced: Value(true)));
   }
-  
+
   // Método para marcar un carnet como pendiente de sincronización
   Future<void> markRecordAsPending(int recordId) async {
     await (update(healthRecords)..where((tbl) => tbl.id.equals(recordId)))
@@ -182,20 +199,23 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // Métodos para vacunaciones pendientes
-  Future<int> insertVacunacionPendiente(VacunacionesPendientesCompanion comp) => 
+  Future<int> insertVacunacionPendiente(VacunacionesPendientesCompanion comp) =>
       into(vacunacionesPendientes).insert(comp);
 
   Future<List<VacunacionesPendiente>> getPendingVacunaciones() async {
-    final query = select(vacunacionesPendientes)..where((tbl) => tbl.synced.equals(false));
+    final query = select(vacunacionesPendientes)
+      ..where((tbl) => tbl.synced.equals(false));
     return await query.get();
   }
 
   Future<void> markVacunacionAsSynced(int vacunacionId) async {
-    await (update(vacunacionesPendientes)..where((tbl) => tbl.id.equals(vacunacionId)))
+    await (update(vacunacionesPendientes)
+          ..where((tbl) => tbl.id.equals(vacunacionId)))
         .write(VacunacionesPendientesCompanion(synced: Value(true)));
   }
 
-  Future<List<VacunacionesPendiente>> getVacunacionesForMatricula(String matricula) async {
+  Future<List<VacunacionesPendiente>> getVacunacionesForMatricula(
+      String matricula) async {
     final query = select(vacunacionesPendientes)
       ..where((tbl) => tbl.matricula.equals(matricula))
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.createdAt)]);

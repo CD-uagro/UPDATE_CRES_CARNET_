@@ -2,18 +2,18 @@
 /// Sistema de evaluación psicológica integrado con CRES
 
 enum TestType {
-  hamilton,     // Escala de Depresión de Hamilton
-  bai,          // Inventario de Ansiedad de Beck
-  narcisismo,   // Cuestionario de Rasgos Narcisistas
-  plutchik,     // Escala de Riesgo Suicida de Plutchik
-  mbi,          // Maslach Burnout Inventory
+  hamilton, // Escala de Depresión de Hamilton
+  bai, // Inventario de Ansiedad de Beck
+  narcisismo, // Cuestionario de Rasgos Narcisistas
+  plutchik, // Escala de Riesgo Suicida de Plutchik
+  mbi, // Maslach Burnout Inventory
 }
 
 enum ResponseType {
-  likert,       // Escala Likert (0-4, 1-5, etc.)
-  binary,       // Sí/No, Verdadero/Falso
-  multiple,     // Selección múltiple
-  numeric,      // Valor numérico
+  likert, // Escala Likert (0-4, 1-5, etc.)
+  binary, // Sí/No, Verdadero/Falso
+  multiple, // Selección múltiple
+  numeric, // Valor numérico
 }
 
 /// Representa una pregunta individual del test
@@ -41,7 +41,7 @@ class TestQuestion {
 class TestResponse {
   final String questionId;
   final dynamic response; // String, int, bool según el tipo
-  final int score;        // Puntuación calculada
+  final int score; // Puntuación calculada
   final DateTime timestamp;
 
   TestResponse({
@@ -52,18 +52,18 @@ class TestResponse {
   });
 
   Map<String, dynamic> toJson() => {
-    'questionId': questionId,
-    'response': response,
-    'score': score,
-    'timestamp': timestamp.toIso8601String(),
-  };
+        'questionId': questionId,
+        'response': response,
+        'score': score,
+        'timestamp': timestamp.toIso8601String(),
+      };
 
   factory TestResponse.fromJson(Map<String, dynamic> json) => TestResponse(
-    questionId: json['questionId'],
-    response: json['response'],
-    score: json['score'],
-    timestamp: DateTime.parse(json['timestamp']),
-  );
+        questionId: json['questionId'],
+        response: json['response'],
+        score: json['score'],
+        timestamp: DateTime.parse(json['timestamp']),
+      );
 }
 
 /// Resultado completo del test
@@ -97,34 +97,37 @@ class TestResult {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'testType': testType.toString(),
-    'matricula': matricula,
-    'nombrePaciente': nombrePaciente,
-    'psicologo': psicologo,
-    'fechaAplicacion': fechaAplicacion.toIso8601String(),
-    'responses': responses.map((r) => r.toJson()).toList(),
-    'puntuacionTotal': puntuacionTotal,
-    'interpretacion': interpretacion,
-    'recomendaciones': recomendaciones,
-    'alertaCritica': alertaCritica,
-    'datosAdicionales': datosAdicionales,
-  };
+        'id': id,
+        'testType': testType.toString(),
+        'matricula': matricula,
+        'nombrePaciente': nombrePaciente,
+        'psicologo': psicologo,
+        'fechaAplicacion': fechaAplicacion.toIso8601String(),
+        'responses': responses.map((r) => r.toJson()).toList(),
+        'puntuacionTotal': puntuacionTotal,
+        'interpretacion': interpretacion,
+        'recomendaciones': recomendaciones,
+        'alertaCritica': alertaCritica,
+        'datosAdicionales': datosAdicionales,
+      };
 
   factory TestResult.fromJson(Map<String, dynamic> json) => TestResult(
-    id: json['id'],
-    testType: TestType.values.firstWhere((t) => t.toString() == json['testType']),
-    matricula: json['matricula'],
-    nombrePaciente: json['nombrePaciente'],
-    psicologo: json['psicologo'],
-    fechaAplicacion: DateTime.parse(json['fechaAplicacion']),
-    responses: (json['responses'] as List).map((r) => TestResponse.fromJson(r)).toList(),
-    puntuacionTotal: json['puntuacionTotal'],
-    interpretacion: json['interpretacion'],
-    recomendaciones: json['recomendaciones'],
-    alertaCritica: json['alertaCritica'] ?? false,
-    datosAdicionales: json['datosAdicionales'],
-  );
+        id: json['id'],
+        testType:
+            TestType.values.firstWhere((t) => t.toString() == json['testType']),
+        matricula: json['matricula'],
+        nombrePaciente: json['nombrePaciente'],
+        psicologo: json['psicologo'],
+        fechaAplicacion: DateTime.parse(json['fechaAplicacion']),
+        responses: (json['responses'] as List)
+            .map((r) => TestResponse.fromJson(r))
+            .toList(),
+        puntuacionTotal: json['puntuacionTotal'],
+        interpretacion: json['interpretacion'],
+        recomendaciones: json['recomendaciones'],
+        alertaCritica: json['alertaCritica'] ?? false,
+        datosAdicionales: json['datosAdicionales'],
+      );
 }
 
 /// Test psicológico base
@@ -135,7 +138,7 @@ abstract class PsychologicalTest {
   String get instructions;
   List<TestQuestion> get questions;
   Duration get estimatedDuration;
-  
+
   /// Calcula la puntuación del test
   TestResult calculateResult({
     required String matricula,
@@ -143,13 +146,13 @@ abstract class PsychologicalTest {
     required String psicologo,
     required List<TestResponse> responses,
   });
-  
+
   /// Interpreta la puntuación según criterios clínicos
   String interpretScore(int score);
-  
+
   /// Genera recomendaciones basadas en el resultado
   String generateRecommendations(int score);
-  
+
   /// Determina si hay alerta crítica
   bool hasCriticalAlert(int score);
 }

@@ -1,6 +1,18 @@
 # Script para publicar la actualización al servidor FastAPI
 # Este script envía la metadata al backend para que las apps puedan detectar la actualización
 
+param(
+    [switch]$AllowLegacy,
+    [switch]$ConfirmProduction
+)
+
+# LEGACY SCRIPT - No usar para releases actuales. Usar version.json + tool/sync_version.ps1 + build_installer.ps1.
+if (-not $AllowLegacy -or -not $ConfirmProduction) {
+    Write-Error "Script legacy bloqueado: publica metadata antigua en backend productivo."
+    Write-Host "Uso consciente: .\publish_update.ps1 -AllowLegacy -ConfirmProduction" -ForegroundColor Yellow
+    exit 1
+}
+
 $API_URL = "https://fastapi-backend-o7ks.onrender.com/updates/publish"
 $JSON_FILE = "version_2.4.30.json"
 

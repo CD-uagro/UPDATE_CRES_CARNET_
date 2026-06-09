@@ -22,11 +22,13 @@ class AboutScreen extends StatelessWidget {
         actions: [
           // Botón de inicio sutil
           IconButton(
-            icon: const Icon(Icons.home_outlined, color: Colors.white70, size: 22),
+            icon: const Icon(Icons.home_outlined,
+                color: Colors.white70, size: 22),
             tooltip: 'Ir al inicio',
             onPressed: () {
               Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => DashboardScreen(db: db)),
+                MaterialPageRoute(
+                    builder: (context) => DashboardScreen(db: db)),
                 (route) => false,
               );
             },
@@ -80,7 +82,7 @@ class AboutScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        
+
                         // Nombre de la app
                         const Text(
                           'CRES Carnets UAGro',
@@ -91,7 +93,7 @@ class AboutScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        
+
                         // Versión
                         Text(
                           'Versión ${versionInfo.fullVersion}',
@@ -101,7 +103,7 @@ class AboutScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        
+
                         // Fecha y canal
                         Text(
                           '${versionInfo.releaseDate} • Canal: ${versionInfo.channel}',
@@ -127,24 +129,26 @@ class AboutScreen extends StatelessWidget {
                           color: UAGroColors.azulMarino,
                         ),
                         const SizedBox(height: 16),
-                        
+
                         _buildInfoCard(
                           icon: Icons.info_outline,
                           title: 'Sistema de Gestión de Carnets',
-                          subtitle: 'Control de expedientes estudiantiles con sincronización en la nube',
+                          subtitle:
+                              'Control de expedientes estudiantiles con sincronización en la nube',
                           color: UAGroColors.rojoEscudo,
                         ),
                         const SizedBox(height: 16),
-                        
+
                         _buildInfoCard(
                           icon: Icons.cloud_queue,
                           title: 'Modo Híbrido',
-                          subtitle: 'Funciona online y offline • Sincronización automática',
+                          subtitle:
+                              'Funciona online y offline • Sincronización automática',
                           color: Colors.blue,
                         ),
-                        
+
                         const SizedBox(height: 32),
-                        
+
                         // Changelog
                         Row(
                           children: [
@@ -160,14 +164,15 @@ class AboutScreen extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        
+
                         ...versionInfo.changelog.take(3).map((entry) {
-                          final isCurrent = entry.version == versionInfo.version;
+                          final isCurrent =
+                              entry.version == versionInfo.version;
                           return _buildChangelogCard(entry, isCurrent);
                         }),
 
                         const SizedBox(height: 24),
-                        
+
                         // Botón para copiar información
                         Center(
                           child: OutlinedButton.icon(
@@ -184,7 +189,8 @@ ${versionService.getChangelogFormatted(maxVersions: 1)}
                               Clipboard.setData(ClipboardData(text: info));
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Información copiada al portapapeles'),
+                                  content: Text(
+                                      'Información copiada al portapapeles'),
                                   duration: Duration(seconds: 2),
                                 ),
                               );
@@ -201,9 +207,9 @@ ${versionService.getChangelogFormatted(maxVersions: 1)}
                             ),
                           ),
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // Copyright
                         Center(
                           child: Text(
@@ -273,7 +279,9 @@ ${versionService.getChangelogFormatted(maxVersions: 1)}
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isCurrent ? UAGroColors.azulMarino.withOpacity(0.1) : Colors.grey[100],
+        color: isCurrent
+            ? UAGroColors.azulMarino.withOpacity(0.1)
+            : Colors.grey[100],
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isCurrent ? UAGroColors.azulMarino : Colors.grey[300]!,
@@ -287,7 +295,8 @@ ${versionService.getChangelogFormatted(maxVersions: 1)}
             children: [
               if (isCurrent)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: UAGroColors.azulMarino,
                     borderRadius: BorderRadius.circular(4),

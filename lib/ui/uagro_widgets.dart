@@ -3,9 +3,13 @@ import 'package:cres_carnets_ibmcloud/ui/uagro_theme.dart';
 import 'package:cres_carnets_ibmcloud/screens/dashboard_screen.dart';
 
 /// AppBar con gradiente UAGro y botón de inicio sutil
-PreferredSizeWidget uagroAppBar(String title, [String? subtitle, List<Widget>? actions, BuildContext? context, dynamic db]) {
+PreferredSizeWidget uagroAppBar(String title,
+    [String? subtitle,
+    List<Widget>? actions,
+    BuildContext? context,
+    dynamic db]) {
   List<Widget> allActions = [];
-  
+
   // Agregar botón de inicio sutil si tenemos contexto y db
   if (context != null && db != null) {
     allActions.add(
@@ -21,7 +25,7 @@ PreferredSizeWidget uagroAppBar(String title, [String? subtitle, List<Widget>? a
       ),
     );
   }
-  
+
   // Agregar acciones adicionales si las hay
   if (actions != null) {
     allActions.addAll(actions);
@@ -40,12 +44,14 @@ PreferredSizeWidget uagroAppBar(String title, [String? subtitle, List<Widget>? a
     title: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-        if (subtitle != null)
-          const SizedBox(height: 2),
+        Text(title,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w800)),
+        if (subtitle != null) const SizedBox(height: 2),
         if (subtitle != null)
           const Text('Expediente de salud universitario',
-              style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.1)),
+              style:
+                  TextStyle(color: Colors.white70, fontSize: 12, height: 1.1)),
       ],
     ),
     backgroundColor: Colors.transparent,
@@ -76,11 +82,18 @@ class BrandHeader extends StatelessWidget {
           const Icon(Icons.local_hospital, color: Colors.white, size: 28),
           const SizedBox(width: 10),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-              Text('CRES Carnets', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-              SizedBox(height: 2),
-              Text('Expediente de salud universitario', style: TextStyle(color: Colors.white70, fontSize: 12)),
-            ]),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('CRES Carnets',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16)),
+                  SizedBox(height: 2),
+                  Text('Expediente de salud universitario',
+                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                ]),
           ),
         ],
       ),
@@ -94,7 +107,12 @@ class SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
   final EdgeInsetsGeometry? padding;
-  const SectionCard({super.key, required this.icon, required this.title, required this.child, this.padding});
+  const SectionCard(
+      {super.key,
+      required this.icon,
+      required this.title,
+      required this.child,
+      this.padding});
 
   @override
   Widget build(BuildContext context) {

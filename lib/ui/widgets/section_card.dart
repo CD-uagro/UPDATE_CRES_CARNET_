@@ -57,9 +57,9 @@ class SectionCard extends StatelessWidget {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: AppTheme.spacing),
-              
+
               // Contenido de la sección
               child,
             ],
@@ -120,7 +120,6 @@ class CompactSectionCard extends StatelessWidget {
                   ),
                 ],
               ),
-              
               const SizedBox(height: 8),
               child,
             ],
@@ -190,7 +189,6 @@ class StatusSectionCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                
                 const SizedBox(height: AppTheme.spacing),
                 child,
               ],

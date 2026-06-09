@@ -4,13 +4,14 @@ import 'uagro_theme.dart'; // Para UAGroColors completo
 
 /// Tema optimizado para Android que adapta automáticamente
 /// los tamaños según el dispositivo móvil
-/// 
+///
 /// Este tema NO modifica el comportamiento en Windows/Desktop
 class AppThemeMobile {
   AppThemeMobile._();
 
   /// Crear tema adaptable basado en el contexto
-  static ThemeData adaptiveTheme(BuildContext context, {required ThemeData baseTheme}) {
+  static ThemeData adaptiveTheme(BuildContext context,
+      {required ThemeData baseTheme}) {
     // Si no es móvil, retornar el tema base sin cambios
     if (!MobileAdaptive.isMobilePlatform) {
       return baseTheme;
@@ -18,16 +19,16 @@ class AppThemeMobile {
 
     // Escalar textTheme para móvil
     final scaledTextTheme = baseTheme.textTheme.scaleForMobile(context);
-    
+
     // Ajustar InputDecorationTheme para móvil
     final mobileInputTheme = _buildMobileInputTheme(context);
-    
+
     // Ajustar CardTheme para móvil
     final mobileCardTheme = _buildMobileCardTheme(context);
-    
+
     // Ajustar ElevatedButtonTheme para móvil
     final mobileButtonTheme = _buildMobileButtonTheme(context);
-    
+
     // Ajustar AppBarTheme para móvil
     final mobileAppBarTheme = _buildMobileAppBarTheme(context);
 
@@ -123,7 +124,8 @@ class AppThemeMobile {
   }
 
   /// OutlinedButtonTheme adaptado para móvil
-  static OutlinedButtonThemeData _buildMobileOutlinedButtonTheme(BuildContext context) {
+  static OutlinedButtonThemeData _buildMobileOutlinedButtonTheme(
+      BuildContext context) {
     final height = MobileAdaptive.buttonHeight(context);
     final padding = MobileAdaptive.inputPadding(context);
     final borderRadius = MobileAdaptive.borderRadius(context);
@@ -150,7 +152,8 @@ class AppThemeMobile {
   }
 
   /// FilledButtonTheme adaptado para móvil
-  static FilledButtonThemeData _buildMobileFilledButtonTheme(BuildContext context) {
+  static FilledButtonThemeData _buildMobileFilledButtonTheme(
+      BuildContext context) {
     final height = MobileAdaptive.buttonHeight(context);
     final padding = MobileAdaptive.inputPadding(context);
     final borderRadius = MobileAdaptive.borderRadius(context);
@@ -236,7 +239,8 @@ class MobileAdaptiveScaffold extends StatelessWidget {
           // Cerrar teclado al tocar fuera de un input
           onTap: () {
             final currentFocus = FocusScope.of(context);
-            if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
+            if (!currentFocus.hasPrimaryFocus &&
+                currentFocus.focusedChild != null) {
               FocusManager.instance.primaryFocus?.unfocus();
             }
           },
@@ -286,7 +290,8 @@ class AdaptiveVSpace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(height: MobileAdaptive.verticalSpacing(context, base: base));
+    return SizedBox(
+        height: MobileAdaptive.verticalSpacing(context, base: base));
   }
 }
 
@@ -298,7 +303,8 @@ class AdaptiveHSpace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(width: MobileAdaptive.horizontalSpacing(context, base: base));
+    return SizedBox(
+        width: MobileAdaptive.horizontalSpacing(context, base: base));
   }
 }
 
@@ -316,7 +322,7 @@ class MaxWidthContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final maxWidth = MobileAdaptive.maxContentWidth(context);
-    
+
     return Center(
       child: Container(
         constraints: BoxConstraints(maxWidth: maxWidth),

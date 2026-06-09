@@ -5,7 +5,6 @@ import '../../models/beck_test.dart';
 import '../../models/dass21_test.dart';
 import '../../models/plutchik_test.dart';
 import '../../models/mbi_test.dart';
-import '../../ui/brand.dart';
 import '../../ui/uagro_theme.dart' as theme;
 import '../../data/auth_service.dart';
 import 'test_results_screen.dart';
@@ -203,7 +202,8 @@ class _TestApplicationScreenState extends State<TestApplicationScreen> {
                   children: [
                     // Info del paciente
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -223,7 +223,7 @@ class _TestApplicationScreenState extends State<TestApplicationScreen> {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
 
                     // Indicador de progreso
@@ -248,11 +248,12 @@ class _TestApplicationScreenState extends State<TestApplicationScreen> {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 12),
-                    
+
                     LinearProgressIndicator(
-                      value: (_currentQuestionIndex + 1) / _test.questions.length,
+                      value:
+                          (_currentQuestionIndex + 1) / _test.questions.length,
                       backgroundColor: Colors.white.withOpacity(0.3),
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       minHeight: 6,
@@ -293,37 +294,47 @@ class _TestApplicationScreenState extends State<TestApplicationScreen> {
                           label: Text('Anterior'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: theme.UAGroColors.azulMarino,
-                            side: BorderSide(color: theme.UAGroColors.azulMarino),
+                            side:
+                                BorderSide(color: theme.UAGroColors.azulMarino),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
                         ),
                       ),
-                    
+
                     if (_currentQuestionIndex > 0) const SizedBox(width: 16),
 
                     // Botón Siguiente/Finalizar
                     Expanded(
                       flex: _currentQuestionIndex == 0 ? 1 : 1,
                       child: ElevatedButton.icon(
-                        onPressed: _isQuestionAnswered(_test.questions[_currentQuestionIndex].id)
-                            ? (_isCompleting ? null : (_currentQuestionIndex == _test.questions.length - 1 ? _completeTest : _nextQuestion))
+                        onPressed: _isQuestionAnswered(
+                                _test.questions[_currentQuestionIndex].id)
+                            ? (_isCompleting
+                                ? null
+                                : (_currentQuestionIndex ==
+                                        _test.questions.length - 1
+                                    ? _completeTest
+                                    : _nextQuestion))
                             : null,
-                        icon: _isCompleting 
+                        icon: _isCompleting
                             ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
                                 ),
                               )
-                            : Icon(_currentQuestionIndex == _test.questions.length - 1 
-                                ? Icons.check 
+                            : Icon(_currentQuestionIndex ==
+                                    _test.questions.length - 1
+                                ? Icons.check
                                 : Icons.arrow_forward),
-                        label: Text(_isCompleting 
-                            ? 'Procesando...' 
-                            : (_currentQuestionIndex == _test.questions.length - 1 
-                                ? 'Finalizar Test' 
+                        label: Text(_isCompleting
+                            ? 'Procesando...'
+                            : (_currentQuestionIndex ==
+                                    _test.questions.length - 1
+                                ? 'Finalizar Test'
                                 : 'Siguiente')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: theme.UAGroColors.azulMarino,
@@ -366,7 +377,7 @@ class _TestApplicationScreenState extends State<TestApplicationScreen> {
                   height: 1.4,
                 ),
               ),
-              
+
               const SizedBox(height: 24),
 
               // Opciones de respuesta
@@ -375,8 +386,9 @@ class _TestApplicationScreenState extends State<TestApplicationScreen> {
                   itemCount: question.options.length,
                   itemBuilder: (context, index) {
                     final option = question.options[index];
-                    final isSelected = _responses[question.id]?['response'] == option;
-                    
+                    final isSelected =
+                        _responses[question.id]?['response'] == option;
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       child: Material(
@@ -385,7 +397,9 @@ class _TestApplicationScreenState extends State<TestApplicationScreen> {
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),
                           onTap: () {
-                            final score = question.scoreMapping?[index.toString()] ?? index;
+                            final score =
+                                question.scoreMapping?[index.toString()] ??
+                                    index;
                             _selectResponse(question.id, option, score);
                           },
                           child: Container(
@@ -393,13 +407,14 @@ class _TestApplicationScreenState extends State<TestApplicationScreen> {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: isSelected 
-                                    ? theme.UAGroColors.azulMarino 
+                                color: isSelected
+                                    ? theme.UAGroColors.azulMarino
                                     : Colors.grey[300]!,
                                 width: isSelected ? 2 : 1,
                               ),
-                              color: isSelected 
-                                  ? theme.UAGroColors.azulMarino.withOpacity(0.1) 
+                              color: isSelected
+                                  ? theme.UAGroColors.azulMarino
+                                      .withOpacity(0.1)
                                   : Colors.white,
                             ),
                             child: Row(
@@ -410,16 +425,16 @@ class _TestApplicationScreenState extends State<TestApplicationScreen> {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: isSelected 
-                                          ? theme.UAGroColors.azulMarino 
+                                      color: isSelected
+                                          ? theme.UAGroColors.azulMarino
                                           : Colors.grey[400]!,
                                       width: 2,
                                     ),
-                                    color: isSelected 
-                                        ? theme.UAGroColors.azulMarino 
+                                    color: isSelected
+                                        ? theme.UAGroColors.azulMarino
                                         : Colors.white,
                                   ),
-                                  child: isSelected 
+                                  child: isSelected
                                       ? Icon(
                                           Icons.check,
                                           size: 16,
@@ -433,11 +448,11 @@ class _TestApplicationScreenState extends State<TestApplicationScreen> {
                                     option,
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: isSelected 
-                                          ? theme.UAGroColors.azulMarino 
+                                      color: isSelected
+                                          ? theme.UAGroColors.azulMarino
                                           : Colors.grey[700],
-                                      fontWeight: isSelected 
-                                          ? FontWeight.w600 
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
                                           : FontWeight.normal,
                                     ),
                                   ),

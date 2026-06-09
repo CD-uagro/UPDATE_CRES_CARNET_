@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 import '../../models/tooth_model.dart';
 import '../../models/odontogram_model.dart';
-import '../../ui/brand.dart';
 import '../../ui/uagro_theme.dart' as theme;
 import '../../data/auth_service.dart';
 import 'package:intl/intl.dart';
@@ -35,10 +33,12 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
   DentitionType _dentitionType = DentitionType.permanent;
   bool _isGeneratingPdf = false;
   bool _isLoading = true;
-  
-  final TextEditingController _observacionesController = TextEditingController();
+
+  final TextEditingController _observacionesController =
+      TextEditingController();
   final TextEditingController _diagnosticoController = TextEditingController();
-  final TextEditingController _planTratamientoController = TextEditingController();
+  final TextEditingController _planTratamientoController =
+      TextEditingController();
 
   @override
   void initState() {
@@ -73,11 +73,11 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
         ),
       ),
     );
-    
+
     setState(() {
       _dentitionType = result ?? DentitionType.permanent;
     });
-    
+
     await _initializeOdontogram();
   }
 
@@ -105,10 +105,10 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
 
   void _applyConditionToSurface() {
     if (_selectedToothNumber == null || _odontogram == null) return;
-    
+
     setState(() {
       final tooth = _odontogram!.teeth[_selectedToothNumber!]!;
-      
+
       if (_selectedSurface != null) {
         // Aplicar a superficie específica
         tooth.surfaces[_selectedSurface!]!.condition = _selectedCondition;
@@ -128,7 +128,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
 
   void _clearTooth() {
     if (_selectedToothNumber == null || _odontogram == null) return;
-    
+
     setState(() {
       final tooth = _odontogram!.teeth[_selectedToothNumber!]!;
       tooth.isPresent = true;
@@ -138,7 +138,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
       // Forzar rebuild inmediato
       _selectedSurface = null;
     });
-    
+
     // Feedback visual
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -153,8 +153,6 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    
     if (_isLoading || _odontogram == null) {
       return Scaffold(
         appBar: AppBar(
@@ -170,7 +168,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
         ),
       );
     }
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -183,7 +181,9 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
           // Botón para cambiar tipo de dentición
           PopupMenuButton<DentitionType>(
             icon: Icon(
-              _dentitionType == DentitionType.deciduous ? Icons.child_care : Icons.person,
+              _dentitionType == DentitionType.deciduous
+                  ? Icons.child_care
+                  : Icons.person,
               color: Colors.white,
             ),
             tooltip: 'Cambiar tipo de dentición',
@@ -212,7 +212,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                   ],
                 ),
               );
-              
+
               if (confirm == true) {
                 setState(() {
                   _dentitionType = type;
@@ -304,7 +304,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                 ],
               ),
             ),
-            
+
             // Centro: Odontograma
             Expanded(
               flex: 4,
@@ -322,7 +322,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                 ],
               ),
             ),
-            
+
             // Panel derecho: Detalles y observaciones
             Container(
               width: 300,
@@ -350,7 +350,8 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
       decoration: BoxDecoration(
         color: theme.UAGroColors.azulMarino.withOpacity(0.05),
         border: Border(
-          bottom: BorderSide(color: theme.UAGroColors.azulMarino.withOpacity(0.2)),
+          bottom:
+              BorderSide(color: theme.UAGroColors.azulMarino.withOpacity(0.2)),
         ),
       ),
       child: Row(
@@ -405,14 +406,14 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Selector de condición - Grid organizado
           Text(
             'Seleccionar tratamiento:',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
-          
+
           // Grid de tratamientos más ordenado
           GridView.count(
             crossAxisCount: 2,
@@ -421,7 +422,9 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
             mainAxisSpacing: 8,
             crossAxisSpacing: 8,
             childAspectRatio: 2.2,
-            children: ToothCondition.values.where((c) => c != ToothCondition.healthy).map((condition) {
+            children: ToothCondition.values
+                .where((c) => c != ToothCondition.healthy)
+                .map((condition) {
               final isSelected = _selectedCondition == condition;
               return InkWell(
                 onTap: () {
@@ -430,14 +433,17 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                   });
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isSelected 
+                    color: isSelected
                         ? ToothConditionColors.getColor(condition)
                         : Colors.grey[100],
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: isSelected ? theme.UAGroColors.azulMarino : Colors.grey[300]!,
+                      color: isSelected
+                          ? theme.UAGroColors.azulMarino
+                          : Colors.grey[300]!,
                       width: isSelected ? 2 : 1,
                     ),
                   ),
@@ -450,11 +456,9 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: _getContrastColor(
-                              isSelected 
-                                  ? ToothConditionColors.getColor(condition)
-                                  : Colors.grey[100]!
-                            ),
+                            color: _getContrastColor(isSelected
+                                ? ToothConditionColors.getColor(condition)
+                                : Colors.grey[100]!),
                           ),
                         ),
                       const SizedBox(height: 2),
@@ -462,12 +466,11 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                         ToothConditionColors.getLabel(condition),
                         style: TextStyle(
                           fontSize: 10,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          color: _getContrastColor(
-                            isSelected 
-                                ? ToothConditionColors.getColor(condition)
-                                : Colors.grey[100]!
-                          ),
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: _getContrastColor(isSelected
+                              ? ToothConditionColors.getColor(condition)
+                              : Colors.grey[100]!),
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 2,
@@ -479,14 +482,16 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
               );
             }).toList(),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Botones de acción
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _selectedToothNumber != null ? _applyConditionToSurface : null,
+              onPressed: _selectedToothNumber != null
+                  ? _applyConditionToSurface
+                  : null,
               icon: const Icon(Icons.brush),
               label: const Text('Aplicar al Diente'),
               style: ElevatedButton.styleFrom(
@@ -509,7 +514,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
               ),
             ),
           ),
-          
+
           if (_selectedToothNumber != null) ...[
             const SizedBox(height: 16),
             Container(
@@ -556,7 +561,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
   Widget _buildOdontogram() {
     // Determinar números de dientes según tipo de dentición
     List<int> upperRight, upperLeft, lowerLeft, lowerRight;
-    
+
     if (_dentitionType == DentitionType.deciduous) {
       // Dentición decidua: 51-55, 61-65, 71-75, 81-85
       upperRight = [55, 54, 53, 52, 51];
@@ -570,7 +575,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
       lowerRight = [48, 47, 46, 45, 44, 43, 42, 41];
       lowerLeft = [31, 32, 33, 34, 35, 36, 37, 38];
     }
-    
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -590,12 +595,12 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: _dentitionType == DentitionType.deciduous 
+              color: _dentitionType == DentitionType.deciduous
                   ? Colors.blue.withOpacity(0.1)
                   : Colors.green.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: _dentitionType == DentitionType.deciduous 
+                color: _dentitionType == DentitionType.deciduous
                     ? Colors.blue
                     : Colors.green,
               ),
@@ -604,26 +609,32 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  _dentitionType == DentitionType.deciduous ? Icons.child_care : Icons.person,
+                  _dentitionType == DentitionType.deciduous
+                      ? Icons.child_care
+                      : Icons.person,
                   size: 16,
-                  color: _dentitionType == DentitionType.deciduous ? Colors.blue : Colors.green,
+                  color: _dentitionType == DentitionType.deciduous
+                      ? Colors.blue
+                      : Colors.green,
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  _dentitionType == DentitionType.deciduous 
+                  _dentitionType == DentitionType.deciduous
                       ? 'DENTICIÓN DECIDUA (20 dientes)'
                       : 'DENTICIÓN PERMANENTE (32 dientes)',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: _dentitionType == DentitionType.deciduous ? Colors.blue : Colors.green,
+                    color: _dentitionType == DentitionType.deciduous
+                        ? Colors.blue
+                        : Colors.green,
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 20),
-          
+
           // Arcada superior
           Text(
             'ARCADA SUPERIOR',
@@ -635,7 +646,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Cuadrantes superiores
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -644,27 +655,27 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
               ...upperRight.map((fdiNumber) {
                 return _buildToothWidget(fdiNumber, isUpper: true);
               }),
-              
+
               const SizedBox(width: 24),
-              
+
               // Cuadrante superior izquierdo
               ...upperLeft.map((fdiNumber) {
                 return _buildToothWidget(fdiNumber, isUpper: true);
               }),
             ],
           ),
-          
+
           const SizedBox(height: 48),
-          
+
           // Línea media
           Container(
             height: 2,
             width: _dentitionType == DentitionType.deciduous ? 400 : 600,
             color: Colors.grey[300],
           ),
-          
+
           const SizedBox(height: 48),
-          
+
           // Cuadrantes inferiores
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -673,16 +684,16 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
               ...lowerRight.reversed.map((fdiNumber) {
                 return _buildToothWidget(fdiNumber, isUpper: false);
               }),
-              
+
               const SizedBox(width: 24),
-              
+
               // Cuadrante inferior izquierdo (invertido)
               ...lowerLeft.reversed.map((fdiNumber) {
                 return _buildToothWidget(fdiNumber, isUpper: false);
               }),
             ],
           ),
-          
+
           const SizedBox(height: 16),
           Text(
             'ARCADA INFERIOR',
@@ -701,7 +712,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
   Widget _buildToothWidget(int fdiNumber, {required bool isUpper}) {
     final tooth = _odontogram!.teeth[fdiNumber]!;
     final isSelected = _selectedToothNumber == fdiNumber;
-    
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2),
       child: Column(
@@ -715,25 +726,27 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? theme.UAGroColors.azulMarino : Colors.grey[600],
+                  color: isSelected
+                      ? theme.UAGroColors.azulMarino
+                      : Colors.grey[600],
                 ),
               ),
             ),
-          
+
           // Diente visual - ahora con detección por superficie
           GestureDetector(
             onTapDown: (details) {
-              final RenderBox box = context.findRenderObject() as RenderBox;
               final localPosition = details.localPosition;
               final toothSize = const Size(60, 80);
-              
+
               // Detectar en qué superficie se hizo clic
-              final surface = _detectSurfaceFromPosition(localPosition, toothSize);
-              
+              final surface =
+                  _detectSurfaceFromPosition(localPosition, toothSize);
+
               setState(() {
                 _selectedToothNumber = fdiNumber;
                 _selectedSurface = surface;
-                
+
                 // Aplicar inmediatamente el color a la superficie clickeada
                 if (surface != null) {
                   tooth.surfaces[surface]!.condition = _selectedCondition;
@@ -753,7 +766,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
               ),
             ),
           ),
-          
+
           // Número FDI abajo
           if (!isUpper)
             Padding(
@@ -763,7 +776,9 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? theme.UAGroColors.azulMarino : Colors.grey[600],
+                  color: isSelected
+                      ? theme.UAGroColors.azulMarino
+                      : Colors.grey[600],
                 ),
               ),
             ),
@@ -778,12 +793,13 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
     final centerY = toothSize.height / 2;
     final relX = position.dx - centerX;
     final relY = position.dy - centerY;
-    
+
     // Área central = Oclusal
-    if (relX.abs() < toothSize.width * 0.15 && relY.abs() < toothSize.height * 0.15) {
+    if (relX.abs() < toothSize.width * 0.15 &&
+        relY.abs() < toothSize.height * 0.15) {
       return ToothSurface.oclusal;
     }
-    
+
     // Determinar superficie según posición
     if (relY < -toothSize.height * 0.15) {
       return ToothSurface.vestibular; // Arriba
@@ -794,7 +810,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
     } else if (relX > toothSize.width * 0.15) {
       return ToothSurface.distal; // Derecha
     }
-    
+
     return ToothSurface.oclusal; // Por defecto
   }
 
@@ -813,7 +829,6 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          
           TextField(
             controller: _diagnosticoController,
             decoration: InputDecoration(
@@ -822,7 +837,8 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              prefixIcon: Icon(Icons.assignment, color: theme.UAGroColors.azulMarino),
+              prefixIcon:
+                  Icon(Icons.assignment, color: theme.UAGroColors.azulMarino),
             ),
             maxLines: 3,
             onChanged: (value) {
@@ -830,7 +846,6 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
             },
           ),
           const SizedBox(height: 16),
-          
           TextField(
             controller: _planTratamientoController,
             decoration: InputDecoration(
@@ -839,7 +854,8 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              prefixIcon: Icon(Icons.medical_services, color: theme.UAGroColors.azulMarino),
+              prefixIcon: Icon(Icons.medical_services,
+                  color: theme.UAGroColors.azulMarino),
             ),
             maxLines: 4,
             onChanged: (value) {
@@ -847,7 +863,6 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
             },
           ),
           const SizedBox(height: 16),
-          
           TextField(
             controller: _observacionesController,
             decoration: InputDecoration(
@@ -863,11 +878,9 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
               _odontogram!.observacionesGenerales = value;
             },
           ),
-          
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 16),
-          
           Text(
             'Estadísticas',
             style: TextStyle(
@@ -877,7 +890,6 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          
           _buildStatistics(),
         ],
       ),
@@ -887,17 +899,18 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
   Widget _buildStatistics() {
     final stats = _odontogram!.getStatistics();
     final relevantStats = stats.entries.where((e) => e.value > 0).toList();
-    
+
     if (relevantStats.isEmpty) {
       return Text(
         'Sin hallazgos registrados',
         style: TextStyle(color: Colors.grey[600], fontSize: 14),
       );
     }
-    
+
     return Column(
       children: relevantStats.map((entry) {
-        final condition = ToothCondition.values.firstWhere((c) => c.name == entry.key);
+        final condition =
+            ToothCondition.values.firstWhere((c) => c.name == entry.key);
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
@@ -916,7 +929,8 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: _getContrastColor(ToothConditionColors.getColor(condition)),
+                      color: _getContrastColor(
+                          ToothConditionColors.getColor(condition)),
                     ),
                   ),
                 ),
@@ -929,7 +943,8 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: theme.UAGroColors.azulMarino.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -965,7 +980,6 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          
           ...ToothCondition.values.map((condition) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -985,7 +999,8 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: _getContrastColor(ToothConditionColors.getColor(condition)),
+                          color: _getContrastColor(
+                              ToothConditionColors.getColor(condition)),
                         ),
                       ),
                     ),
@@ -1018,7 +1033,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
 
     try {
       final pdf = pw.Document();
-      
+
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4.landscape, // A4 horizontal: 842 x 595 pt
@@ -1049,11 +1064,13 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                         ),
                         pw.Text(
                           'Centro Regional de Educación Superior',
-                          style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+                          style: const pw.TextStyle(
+                              fontSize: 11, color: PdfColors.grey700),
                         ),
                         pw.Text(
                           'Departamento de Odontología',
-                          style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+                          style: const pw.TextStyle(
+                              fontSize: 11, color: PdfColors.grey700),
                         ),
                       ],
                     ),
@@ -1069,68 +1086,86 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                           ),
                         ),
                         pw.Text(
-                          DateFormat('dd/MM/yyyy HH:mm').format(_odontogram!.fecha),
-                          style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+                          DateFormat('dd/MM/yyyy HH:mm')
+                              .format(_odontogram!.fecha),
+                          style: const pw.TextStyle(
+                              fontSize: 10, color: PdfColors.grey600),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              
+
               pw.SizedBox(height: 10),
-              
+
               // Información del paciente compacta
               pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: pw.BoxDecoration(
                   border: pw.Border.all(color: PdfColors.grey400),
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
+                  borderRadius:
+                      const pw.BorderRadius.all(pw.Radius.circular(5)),
                   color: PdfColors.grey50,
                 ),
                 child: pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Paciente: ${_odontogram!.nombrePaciente}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                    pw.Text('Matrícula: ${_odontogram!.matricula}', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('Dentista: ${_odontogram!.dentista}', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('Paciente: ${_odontogram!.nombrePaciente}',
+                        style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    pw.Text('Matrícula: ${_odontogram!.matricula}',
+                        style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('Dentista: ${_odontogram!.dentista}',
+                        style: const pw.TextStyle(fontSize: 10)),
                   ],
                 ),
               ),
-              
+
               pw.SizedBox(height: 12),
-              
+
               // ODONTOGRAMA VISUAL
               pw.Text(
                 'ODONTOGRAMA VISUAL',
-                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
+                style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blue900),
               ),
               pw.SizedBox(height: 15),
-              
+
               // Tipo de dentición
               pw.Center(
                 child: pw.Text(
-                  _dentitionType == DentitionType.deciduous 
+                  _dentitionType == DentitionType.deciduous
                       ? 'DENTICIÓN DECIDUA (20 dientes - FDI 51-85)'
                       : 'DENTICIÓN PERMANENTE (32 dientes - FDI 11-48)',
-                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.blue),
+                  style: pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.blue),
                 ),
               ),
               pw.SizedBox(height: 10),
-              
+
               // Arcada Superior
               pw.Center(
-                child: pw.Text('ARCADA SUPERIOR', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+                child: pw.Text('ARCADA SUPERIOR',
+                    style: const pw.TextStyle(
+                        fontSize: 10, color: PdfColors.grey600)),
               ),
               pw.SizedBox(height: 10),
-              
+
               // Contenedor del odontograma optimizado para A4 horizontal (842pt ancho)
               pw.Container(
                 width: double.infinity,
-                padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 decoration: pw.BoxDecoration(
                   border: pw.Border.all(color: PdfColors.blue900, width: 1.5),
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  borderRadius:
+                      const pw.BorderRadius.all(pw.Radius.circular(8)),
                   color: PdfColors.grey50,
                 ),
                 child: pw.Column(
@@ -1141,70 +1176,87 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                       children: _dentitionType == DentitionType.deciduous
                           ? [
                               // Cuadrante 5 (55-51)
-                              ...[55, 54, 53, 52, 51].map((fdi) => _buildPdfTooth(fdi)),
+                              ...[55, 54, 53, 52, 51]
+                                  .map((fdi) => _buildPdfTooth(fdi)),
                               pw.SizedBox(width: 30),
                               // Cuadrante 6 (61-65)
-                              ...[61, 62, 63, 64, 65].map((fdi) => _buildPdfTooth(fdi)),
+                              ...[61, 62, 63, 64, 65]
+                                  .map((fdi) => _buildPdfTooth(fdi)),
                             ]
                           : [
                               // Cuadrante 1 (18-11)
-                              ...[18, 17, 16, 15, 14, 13, 12, 11].map((fdi) => _buildPdfTooth(fdi)),
+                              ...[18, 17, 16, 15, 14, 13, 12, 11]
+                                  .map((fdi) => _buildPdfTooth(fdi)),
                               pw.SizedBox(width: 30),
                               // Cuadrante 2 (21-28)
-                              ...[21, 22, 23, 24, 25, 26, 27, 28].map((fdi) => _buildPdfTooth(fdi)),
+                              ...[21, 22, 23, 24, 25, 26, 27, 28]
+                                  .map((fdi) => _buildPdfTooth(fdi)),
                             ],
                     ),
-                    
+
                     pw.SizedBox(height: 14),
-                    
+
                     // Línea media más definida y centrada
                     pw.Container(
                       height: 3,
-                      width: _dentitionType == DentitionType.deciduous ? 420 : 640,
+                      width:
+                          _dentitionType == DentitionType.deciduous ? 420 : 640,
                       decoration: pw.BoxDecoration(
                         color: PdfColors.blue900,
-                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(2)),
+                        borderRadius:
+                            const pw.BorderRadius.all(pw.Radius.circular(2)),
                       ),
                     ),
-                    
+
                     pw.SizedBox(height: 14),
-                    
+
                     // Cuadrantes inferiores
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.center,
                       children: _dentitionType == DentitionType.deciduous
                           ? [
                               // Cuadrante 8 (85-81)
-                              ...[85, 84, 83, 82, 81].reversed.map((fdi) => _buildPdfTooth(fdi)),
+                              ...[85, 84, 83, 82, 81]
+                                  .reversed
+                                  .map((fdi) => _buildPdfTooth(fdi)),
                               pw.SizedBox(width: 30),
                               // Cuadrante 7 (71-75)
-                              ...[71, 72, 73, 74, 75].reversed.map((fdi) => _buildPdfTooth(fdi)),
+                              ...[71, 72, 73, 74, 75]
+                                  .reversed
+                                  .map((fdi) => _buildPdfTooth(fdi)),
                             ]
                           : [
                               // Cuadrante 4 (48-41)
-                              ...[48, 47, 46, 45, 44, 43, 42, 41].reversed.map((fdi) => _buildPdfTooth(fdi)),
+                              ...[48, 47, 46, 45, 44, 43, 42, 41]
+                                  .reversed
+                                  .map((fdi) => _buildPdfTooth(fdi)),
                               pw.SizedBox(width: 30),
                               // Cuadrante 3 (31-38)
-                              ...[31, 32, 33, 34, 35, 36, 37, 38].reversed.map((fdi) => _buildPdfTooth(fdi)),
+                              ...[31, 32, 33, 34, 35, 36, 37, 38]
+                                  .reversed
+                                  .map((fdi) => _buildPdfTooth(fdi)),
                             ],
                     ),
                   ],
                 ),
               ),
-              
+
               pw.SizedBox(height: 10),
               pw.Center(
-                child: pw.Text('ARCADA INFERIOR', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+                child: pw.Text('ARCADA INFERIOR',
+                    style: const pw.TextStyle(
+                        fontSize: 10, color: PdfColors.grey600)),
               ),
-              
+
               pw.SizedBox(height: 10),
-              
+
               // Leyenda compacta en 2 filas para aprovechar ancho horizontal
               pw.Container(
                 padding: const pw.EdgeInsets.all(8),
                 decoration: pw.BoxDecoration(
                   border: pw.Border.all(color: PdfColors.blue900, width: 1),
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                  borderRadius:
+                      const pw.BorderRadius.all(pw.Radius.circular(6)),
                   color: PdfColors.blue50,
                 ),
                 child: pw.Column(
@@ -1212,7 +1264,10 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                   children: [
                     pw.Text(
                       'LEYENDA DE CONDICIONES:',
-                      style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
+                      style: pw.TextStyle(
+                          fontSize: 10,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.blue900),
                     ),
                     pw.SizedBox(height: 6),
                     // Primera fila
@@ -1221,11 +1276,16 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                       children: [
                         _buildLegendItem('Sano', PdfColors.white),
                         _buildLegendItem('Caries', PdfColors.black),
-                        _buildLegendItem('Restauración', const PdfColor(0.2, 0.4, 0.8)),
-                        _buildLegendItem('Extracción', const PdfColor(0.9, 0.1, 0.1)),
-                        _buildLegendItem('Endodoncia', const PdfColor(1.0, 0.5, 0.0)),
-                        _buildLegendItem('Corona', const PdfColor(1.0, 0.85, 0.0)),
-                        _buildLegendItem('Puente', const PdfColor(0.6, 0.2, 0.8)),
+                        _buildLegendItem(
+                            'Restauración', const PdfColor(0.2, 0.4, 0.8)),
+                        _buildLegendItem(
+                            'Extracción', const PdfColor(0.9, 0.1, 0.1)),
+                        _buildLegendItem(
+                            'Endodoncia', const PdfColor(1.0, 0.5, 0.0)),
+                        _buildLegendItem(
+                            'Corona', const PdfColor(1.0, 0.85, 0.0)),
+                        _buildLegendItem(
+                            'Puente', const PdfColor(0.6, 0.2, 0.8)),
                       ],
                     ),
                     pw.SizedBox(height: 4),
@@ -1233,60 +1293,75 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
                       children: [
-                        _buildLegendItem('Implante', const PdfColor(0.0, 0.8, 0.8)),
-                        _buildLegendItem('Fractura', const PdfColor(1.0, 0.4, 0.7)),
-                        _buildLegendItem('Absceso', const PdfColor(0.9, 0.3, 0.0)),
-                        _buildLegendItem('Cálculo', const PdfColor(0.5, 0.35, 0.2)),
-                        _buildLegendItem('Gingivitis', const PdfColor(0.9, 0.5, 0.5)),
-                        _buildLegendItem('Movilidad', const PdfColor(0.6, 0.6, 0.6)),
-                        _buildLegendItem('Por Extraer', const PdfColor(0.85, 0.0, 0.0)),
+                        _buildLegendItem(
+                            'Implante', const PdfColor(0.0, 0.8, 0.8)),
+                        _buildLegendItem(
+                            'Fractura', const PdfColor(1.0, 0.4, 0.7)),
+                        _buildLegendItem(
+                            'Absceso', const PdfColor(0.9, 0.3, 0.0)),
+                        _buildLegendItem(
+                            'Cálculo', const PdfColor(0.5, 0.35, 0.2)),
+                        _buildLegendItem(
+                            'Gingivitis', const PdfColor(0.9, 0.5, 0.5)),
+                        _buildLegendItem(
+                            'Movilidad', const PdfColor(0.6, 0.6, 0.6)),
+                        _buildLegendItem(
+                            'Por Extraer', const PdfColor(0.85, 0.0, 0.0)),
                       ],
                     ),
                   ],
                 ),
               ),
-              
+
               pw.SizedBox(height: 10),
-              
+
               // Hallazgos detallados
               pw.Text(
                 'Hallazgos Clínicos Detallados:',
-                style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
+                style: pw.TextStyle(
+                    fontSize: 11,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blue900),
               ),
               pw.SizedBox(height: 6),
-              
+
               ...(_odontogram!.getProblematicTeeth().map((tooth) {
                 final conditions = <String>[];
                 for (var surface in tooth.surfaces.entries) {
                   if (surface.value.condition != ToothCondition.healthy) {
-                    conditions.add('${_getSurfaceLabel(surface.key)}: ${ToothConditionColors.getLabel(surface.value.condition)}');
+                    conditions.add(
+                        '${_getSurfaceLabel(surface.key)}: ${ToothConditionColors.getLabel(surface.value.condition)}');
                   }
                 }
                 return pw.Padding(
                   padding: const pw.EdgeInsets.only(bottom: 4),
-                  child: pw.Text('• Diente ${tooth.fdiNumber} (${tooth.name}): ${conditions.join(', ')}', 
-                    style: const pw.TextStyle(fontSize: 10)),
+                  child: pw.Text(
+                      '• Diente ${tooth.fdiNumber} (${tooth.name}): ${conditions.join(', ')}',
+                      style: const pw.TextStyle(fontSize: 10)),
                 );
               })),
-              
+
               pw.SizedBox(height: 20),
-              
+
               if (_odontogram!.diagnostico.isNotEmpty) ...[
-                pw.Text('Diagnóstico:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.Text('Diagnóstico:',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 pw.SizedBox(height: 5),
                 pw.Text(_odontogram!.diagnostico),
                 pw.SizedBox(height: 15),
               ],
-              
+
               if (_odontogram!.planTratamiento.isNotEmpty) ...[
-                pw.Text('Plan de Tratamiento:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.Text('Plan de Tratamiento:',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 pw.SizedBox(height: 5),
                 pw.Text(_odontogram!.planTratamiento),
                 pw.SizedBox(height: 15),
               ],
-              
+
               if (_odontogram!.observacionesGenerales.isNotEmpty) ...[
-                pw.Text('Observaciones:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.Text('Observaciones:',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                 pw.SizedBox(height: 5),
                 pw.Text(_odontogram!.observacionesGenerales),
               ],
@@ -1296,22 +1371,25 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
       );
 
       final pdfBytes = await pdf.save();
-      final fileName = 'Odontograma_${_odontogram!.matricula}_${DateFormat('yyyyMMdd_HHmmss').format(_odontogram!.fecha)}.pdf';
+      final fileName =
+          'Odontograma_${_odontogram!.matricula}_${DateFormat('yyyyMMdd_HHmmss').format(_odontogram!.fecha)}.pdf';
 
       // Guardar localmente
       final baseDir = await getApplicationSupportDirectory();
-      final pdfDir = Directory(path.join(baseDir.path, 'odontogramas', _odontogram!.matricula));
+      final pdfDir = Directory(
+          path.join(baseDir.path, 'odontogramas', _odontogram!.matricula));
       if (!await pdfDir.exists()) {
         await pdfDir.create(recursive: true);
       }
-      
+
       final pdfFile = File(path.join(pdfDir.path, fileName));
       await pdfFile.writeAsBytes(pdfBytes);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✓ PDF guardado en: odontogramas/${_odontogram!.matricula}/'),
+            content: Text(
+                '✓ PDF guardado en: odontogramas/${_odontogram!.matricula}/'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 3),
           ),
@@ -1327,7 +1405,6 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
           format: PdfPageFormat.a4.landscape, // FORZAR horizontal al visualizar
         );
       }
-
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1349,13 +1426,13 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
   // Construir diente para PDF optimizado para A4 horizontal
   pw.Widget _buildPdfTooth(int fdiNumber) {
     final tooth = _odontogram!.teeth[fdiNumber]!;
-    
+
     // Tamaño optimizado: A4 horizontal tiene 842pt de ancho
     // Con márgenes de 40pt quedan 802pt
     // Para 16 dientes + espacios: ~45pt por diente
     final toothWidth = _dentitionType == DentitionType.deciduous ? 36.0 : 32.0;
     final toothHeight = _dentitionType == DentitionType.deciduous ? 48.0 : 44.0;
-    
+
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(horizontal: 1.5),
       child: pw.Column(
@@ -1370,7 +1447,7 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
             ),
           ),
           pw.SizedBox(height: 2),
-          
+
           // Diente visual más grande para A4 horizontal
           pw.Container(
             width: toothWidth,
@@ -1410,16 +1487,19 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
     final h = (size.y - margin * 2) * 0.75;
 
     // SUPERFICIE OCLUSAL (centro) - círculo más grande y definido
-    final oclusalColor = _getPdfColor(tooth.surfaces[ToothSurface.oclusal]!.condition);
+    final oclusalColor =
+        _getPdfColor(tooth.surfaces[ToothSurface.oclusal]!.condition);
     final oclusalRadiusX = w * 0.22;
     final oclusalRadiusY = h * 0.22;
     canvas
       ..setFillColor(oclusalColor)
-      ..drawEllipse(centerX - oclusalRadiusX, centerY - oclusalRadiusY, oclusalRadiusX * 2, oclusalRadiusY * 2)
+      ..drawEllipse(centerX - oclusalRadiusX, centerY - oclusalRadiusY,
+          oclusalRadiusX * 2, oclusalRadiusY * 2)
       ..fillPath();
 
     // SUPERFICIE VESTIBULAR (arriba) - trapecio bien definido
-    final vestibularColor = _getPdfColor(tooth.surfaces[ToothSurface.vestibular]!.condition);
+    final vestibularColor =
+        _getPdfColor(tooth.surfaces[ToothSurface.vestibular]!.condition);
     canvas
       ..setFillColor(vestibularColor)
       ..moveTo(centerX - w * 0.28, centerY - h * 0.12)
@@ -1430,7 +1510,8 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
       ..fillPath();
 
     // SUPERFICIE LINGUAL (abajo) - trapecio simétrico al vestibular
-    final lingualColor = _getPdfColor(tooth.surfaces[ToothSurface.lingual]!.condition);
+    final lingualColor =
+        _getPdfColor(tooth.surfaces[ToothSurface.lingual]!.condition);
     canvas
       ..setFillColor(lingualColor)
       ..moveTo(centerX - w * 0.28, centerY + h * 0.12)
@@ -1441,7 +1522,8 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
       ..fillPath();
 
     // SUPERFICIE MESIAL (izquierda) - más ancha y visible
-    final mesialColor = _getPdfColor(tooth.surfaces[ToothSurface.mesial]!.condition);
+    final mesialColor =
+        _getPdfColor(tooth.surfaces[ToothSurface.mesial]!.condition);
     canvas
       ..setFillColor(mesialColor)
       ..moveTo(centerX - w * 0.28, centerY - h * 0.12)
@@ -1452,7 +1534,8 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
       ..fillPath();
 
     // SUPERFICIE DISTAL (derecha) - simétrica a mesial
-    final distalColor = _getPdfColor(tooth.surfaces[ToothSurface.distal]!.condition);
+    final distalColor =
+        _getPdfColor(tooth.surfaces[ToothSurface.distal]!.condition);
     canvas
       ..setFillColor(distalColor)
       ..moveTo(centerX + w * 0.28, centerY - h * 0.12)
@@ -1469,7 +1552,8 @@ class _OdontogramScreenState extends State<OdontogramScreen> {
 
     // Borde oclusal (centro)
     canvas
-      ..drawEllipse(centerX - oclusalRadiusX, centerY - oclusalRadiusY, oclusalRadiusX * 2, oclusalRadiusY * 2)
+      ..drawEllipse(centerX - oclusalRadiusX, centerY - oclusalRadiusY,
+          oclusalRadiusX * 2, oclusalRadiusY * 2)
       ..strokePath();
 
     // Borde vestibular (arriba)
@@ -1617,7 +1701,7 @@ class ToothPainter extends CustomPainter {
       paint.color = Colors.red;
       paint.style = PaintingStyle.stroke;
       paint.strokeWidth = 3;
-      
+
       canvas.drawLine(
         Offset(centerX - 20, centerY - 20),
         Offset(centerX + 20, centerY + 20),
@@ -1643,7 +1727,7 @@ class ToothPainter extends CustomPainter {
             height: toothHeight * 0.4,
           )),
       ),
-      
+
       // Vestibular (arriba)
       _ToothSurfacePath(
         surface: ToothSurface.vestibular,
@@ -1654,7 +1738,7 @@ class ToothPainter extends CustomPainter {
           ..lineTo(centerX - toothWidth * 0.35, centerY - toothHeight * 0.45)
           ..close(),
       ),
-      
+
       // Lingual (abajo)
       _ToothSurfacePath(
         surface: ToothSurface.lingual,
@@ -1665,7 +1749,7 @@ class ToothPainter extends CustomPainter {
           ..lineTo(centerX - toothWidth * 0.35, centerY + toothHeight * 0.45)
           ..close(),
       ),
-      
+
       // Mesial (izquierda)
       _ToothSurfacePath(
         surface: ToothSurface.mesial,
@@ -1676,7 +1760,7 @@ class ToothPainter extends CustomPainter {
           ..lineTo(centerX - toothWidth * 0.45, centerY - toothHeight * 0.20)
           ..close(),
       ),
-      
+
       // Distal (derecha)
       _ToothSurfacePath(
         surface: ToothSurface.distal,
@@ -1693,7 +1777,7 @@ class ToothPainter extends CustomPainter {
     for (var surfacePath in surfaces) {
       final surfaceState = tooth.surfaces[surfacePath.surface]!;
       final isSurfaceSelected = selectedSurface == surfacePath.surface;
-      
+
       // Color de la superficie
       paint.color = ToothConditionColors.getColor(surfaceState.condition);
       paint.style = PaintingStyle.fill;
@@ -1701,13 +1785,15 @@ class ToothPainter extends CustomPainter {
 
       // Si esta superficie está seleccionada, mostrar preview del color que se aplicará
       if (isSurfaceSelected && selectedCondition != null && isSelected) {
-        paint.color = ToothConditionColors.getColor(selectedCondition!).withOpacity(0.5);
+        paint.color =
+            ToothConditionColors.getColor(selectedCondition!).withOpacity(0.5);
         canvas.drawPath(surfacePath.path, paint);
       }
 
       // Borde de cada superficie
-      paint.color = isSurfaceSelected && isSelected 
-          ? Color(0xFF003366).withOpacity(0.8) // Azul marino si está seleccionada
+      paint.color = isSurfaceSelected && isSelected
+          ? Color(0xFF003366)
+              .withOpacity(0.8) // Azul marino si está seleccionada
           : Colors.grey[800]!;
       paint.style = PaintingStyle.stroke;
       paint.strokeWidth = isSurfaceSelected && isSelected ? 2.5 : 1;

@@ -63,6 +63,21 @@ class $HealthRecordsTable extends HealthRecords
   late final GeneratedColumn<String> programa = GeneratedColumn<String>(
       'programa', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _escuelaUnidadAcademicaMeta =
+      const VerificationMeta('escuelaUnidadAcademica');
+  @override
+  late final GeneratedColumn<String> escuelaUnidadAcademica =
+      GeneratedColumn<String>('escuela_unidad_academica', aliasedName, false,
+          type: DriftSqlType.string,
+          requiredDuringInsert: false,
+          defaultValue: const Constant('No especificada'));
+  static const VerificationMeta _grupoMeta = const VerificationMeta('grupo');
+  @override
+  late final GeneratedColumn<String> grupo = GeneratedColumn<String>(
+      'grupo', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _discapacidadMeta =
       const VerificationMeta('discapacidad');
   @override
@@ -161,6 +176,8 @@ class $HealthRecordsTable extends HealthRecords
         sexo,
         categoria,
         programa,
+        escuelaUnidadAcademica,
+        grupo,
         discapacidad,
         tipoDiscapacidad,
         alergias,
@@ -228,6 +245,16 @@ class $HealthRecordsTable extends HealthRecords
     if (data.containsKey('programa')) {
       context.handle(_programaMeta,
           programa.isAcceptableOrUnknown(data['programa']!, _programaMeta));
+    }
+    if (data.containsKey('escuela_unidad_academica')) {
+      context.handle(
+          _escuelaUnidadAcademicaMeta,
+          escuelaUnidadAcademica.isAcceptableOrUnknown(
+              data['escuela_unidad_academica']!, _escuelaUnidadAcademicaMeta));
+    }
+    if (data.containsKey('grupo')) {
+      context.handle(
+          _grupoMeta, grupo.isAcceptableOrUnknown(data['grupo']!, _grupoMeta));
     }
     if (data.containsKey('discapacidad')) {
       context.handle(
@@ -334,6 +361,11 @@ class $HealthRecordsTable extends HealthRecords
           .read(DriftSqlType.string, data['${effectivePrefix}categoria']),
       programa: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}programa']),
+      escuelaUnidadAcademica: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}escuela_unidad_academica'])!,
+      grupo: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}grupo'])!,
       discapacidad: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}discapacidad']),
       tipoDiscapacidad: attachedDatabase.typeMapping.read(
@@ -382,6 +414,8 @@ class HealthRecord extends DataClass implements Insertable<HealthRecord> {
   final String? sexo;
   final String? categoria;
   final String? programa;
+  final String escuelaUnidadAcademica;
+  final String grupo;
   final String? discapacidad;
   final String? tipoDiscapacidad;
   final String? alergias;
@@ -406,6 +440,8 @@ class HealthRecord extends DataClass implements Insertable<HealthRecord> {
       this.sexo,
       this.categoria,
       this.programa,
+      required this.escuelaUnidadAcademica,
+      required this.grupo,
       this.discapacidad,
       this.tipoDiscapacidad,
       this.alergias,
@@ -442,6 +478,8 @@ class HealthRecord extends DataClass implements Insertable<HealthRecord> {
     if (!nullToAbsent || programa != null) {
       map['programa'] = Variable<String>(programa);
     }
+    map['escuela_unidad_academica'] = Variable<String>(escuelaUnidadAcademica);
+    map['grupo'] = Variable<String>(grupo);
     if (!nullToAbsent || discapacidad != null) {
       map['discapacidad'] = Variable<String>(discapacidad);
     }
@@ -503,6 +541,8 @@ class HealthRecord extends DataClass implements Insertable<HealthRecord> {
       programa: programa == null && nullToAbsent
           ? const Value.absent()
           : Value(programa),
+      escuelaUnidadAcademica: Value(escuelaUnidadAcademica),
+      grupo: Value(grupo),
       discapacidad: discapacidad == null && nullToAbsent
           ? const Value.absent()
           : Value(discapacidad),
@@ -559,6 +599,9 @@ class HealthRecord extends DataClass implements Insertable<HealthRecord> {
       sexo: serializer.fromJson<String?>(json['sexo']),
       categoria: serializer.fromJson<String?>(json['categoria']),
       programa: serializer.fromJson<String?>(json['programa']),
+      escuelaUnidadAcademica:
+          serializer.fromJson<String>(json['escuelaUnidadAcademica']),
+      grupo: serializer.fromJson<String>(json['grupo']),
       discapacidad: serializer.fromJson<String?>(json['discapacidad']),
       tipoDiscapacidad: serializer.fromJson<String?>(json['tipoDiscapacidad']),
       alergias: serializer.fromJson<String?>(json['alergias']),
@@ -593,6 +636,9 @@ class HealthRecord extends DataClass implements Insertable<HealthRecord> {
       'sexo': serializer.toJson<String?>(sexo),
       'categoria': serializer.toJson<String?>(categoria),
       'programa': serializer.toJson<String?>(programa),
+      'escuelaUnidadAcademica':
+          serializer.toJson<String>(escuelaUnidadAcademica),
+      'grupo': serializer.toJson<String>(grupo),
       'discapacidad': serializer.toJson<String?>(discapacidad),
       'tipoDiscapacidad': serializer.toJson<String?>(tipoDiscapacidad),
       'alergias': serializer.toJson<String?>(alergias),
@@ -621,6 +667,8 @@ class HealthRecord extends DataClass implements Insertable<HealthRecord> {
           Value<String?> sexo = const Value.absent(),
           Value<String?> categoria = const Value.absent(),
           Value<String?> programa = const Value.absent(),
+          String? escuelaUnidadAcademica,
+          String? grupo,
           Value<String?> discapacidad = const Value.absent(),
           Value<String?> tipoDiscapacidad = const Value.absent(),
           Value<String?> alergias = const Value.absent(),
@@ -645,6 +693,9 @@ class HealthRecord extends DataClass implements Insertable<HealthRecord> {
         sexo: sexo.present ? sexo.value : this.sexo,
         categoria: categoria.present ? categoria.value : this.categoria,
         programa: programa.present ? programa.value : this.programa,
+        escuelaUnidadAcademica:
+            escuelaUnidadAcademica ?? this.escuelaUnidadAcademica,
+        grupo: grupo ?? this.grupo,
         discapacidad:
             discapacidad.present ? discapacidad.value : this.discapacidad,
         tipoDiscapacidad: tipoDiscapacidad.present
@@ -691,6 +742,10 @@ class HealthRecord extends DataClass implements Insertable<HealthRecord> {
       sexo: data.sexo.present ? data.sexo.value : this.sexo,
       categoria: data.categoria.present ? data.categoria.value : this.categoria,
       programa: data.programa.present ? data.programa.value : this.programa,
+      escuelaUnidadAcademica: data.escuelaUnidadAcademica.present
+          ? data.escuelaUnidadAcademica.value
+          : this.escuelaUnidadAcademica,
+      grupo: data.grupo.present ? data.grupo.value : this.grupo,
       discapacidad: data.discapacidad.present
           ? data.discapacidad.value
           : this.discapacidad,
@@ -741,6 +796,8 @@ class HealthRecord extends DataClass implements Insertable<HealthRecord> {
           ..write('sexo: $sexo, ')
           ..write('categoria: $categoria, ')
           ..write('programa: $programa, ')
+          ..write('escuelaUnidadAcademica: $escuelaUnidadAcademica, ')
+          ..write('grupo: $grupo, ')
           ..write('discapacidad: $discapacidad, ')
           ..write('tipoDiscapacidad: $tipoDiscapacidad, ')
           ..write('alergias: $alergias, ')
@@ -770,6 +827,8 @@ class HealthRecord extends DataClass implements Insertable<HealthRecord> {
         sexo,
         categoria,
         programa,
+        escuelaUnidadAcademica,
+        grupo,
         discapacidad,
         tipoDiscapacidad,
         alergias,
@@ -798,6 +857,8 @@ class HealthRecord extends DataClass implements Insertable<HealthRecord> {
           other.sexo == this.sexo &&
           other.categoria == this.categoria &&
           other.programa == this.programa &&
+          other.escuelaUnidadAcademica == this.escuelaUnidadAcademica &&
+          other.grupo == this.grupo &&
           other.discapacidad == this.discapacidad &&
           other.tipoDiscapacidad == this.tipoDiscapacidad &&
           other.alergias == this.alergias &&
@@ -824,6 +885,8 @@ class HealthRecordsCompanion extends UpdateCompanion<HealthRecord> {
   final Value<String?> sexo;
   final Value<String?> categoria;
   final Value<String?> programa;
+  final Value<String> escuelaUnidadAcademica;
+  final Value<String> grupo;
   final Value<String?> discapacidad;
   final Value<String?> tipoDiscapacidad;
   final Value<String?> alergias;
@@ -848,6 +911,8 @@ class HealthRecordsCompanion extends UpdateCompanion<HealthRecord> {
     this.sexo = const Value.absent(),
     this.categoria = const Value.absent(),
     this.programa = const Value.absent(),
+    this.escuelaUnidadAcademica = const Value.absent(),
+    this.grupo = const Value.absent(),
     this.discapacidad = const Value.absent(),
     this.tipoDiscapacidad = const Value.absent(),
     this.alergias = const Value.absent(),
@@ -873,6 +938,8 @@ class HealthRecordsCompanion extends UpdateCompanion<HealthRecord> {
     this.sexo = const Value.absent(),
     this.categoria = const Value.absent(),
     this.programa = const Value.absent(),
+    this.escuelaUnidadAcademica = const Value.absent(),
+    this.grupo = const Value.absent(),
     this.discapacidad = const Value.absent(),
     this.tipoDiscapacidad = const Value.absent(),
     this.alergias = const Value.absent(),
@@ -900,6 +967,8 @@ class HealthRecordsCompanion extends UpdateCompanion<HealthRecord> {
     Expression<String>? sexo,
     Expression<String>? categoria,
     Expression<String>? programa,
+    Expression<String>? escuelaUnidadAcademica,
+    Expression<String>? grupo,
     Expression<String>? discapacidad,
     Expression<String>? tipoDiscapacidad,
     Expression<String>? alergias,
@@ -925,6 +994,9 @@ class HealthRecordsCompanion extends UpdateCompanion<HealthRecord> {
       if (sexo != null) 'sexo': sexo,
       if (categoria != null) 'categoria': categoria,
       if (programa != null) 'programa': programa,
+      if (escuelaUnidadAcademica != null)
+        'escuela_unidad_academica': escuelaUnidadAcademica,
+      if (grupo != null) 'grupo': grupo,
       if (discapacidad != null) 'discapacidad': discapacidad,
       if (tipoDiscapacidad != null) 'tipo_discapacidad': tipoDiscapacidad,
       if (alergias != null) 'alergias': alergias,
@@ -953,6 +1025,8 @@ class HealthRecordsCompanion extends UpdateCompanion<HealthRecord> {
       Value<String?>? sexo,
       Value<String?>? categoria,
       Value<String?>? programa,
+      Value<String>? escuelaUnidadAcademica,
+      Value<String>? grupo,
       Value<String?>? discapacidad,
       Value<String?>? tipoDiscapacidad,
       Value<String?>? alergias,
@@ -977,6 +1051,9 @@ class HealthRecordsCompanion extends UpdateCompanion<HealthRecord> {
       sexo: sexo ?? this.sexo,
       categoria: categoria ?? this.categoria,
       programa: programa ?? this.programa,
+      escuelaUnidadAcademica:
+          escuelaUnidadAcademica ?? this.escuelaUnidadAcademica,
+      grupo: grupo ?? this.grupo,
       discapacidad: discapacidad ?? this.discapacidad,
       tipoDiscapacidad: tipoDiscapacidad ?? this.tipoDiscapacidad,
       alergias: alergias ?? this.alergias,
@@ -1024,6 +1101,13 @@ class HealthRecordsCompanion extends UpdateCompanion<HealthRecord> {
     }
     if (programa.present) {
       map['programa'] = Variable<String>(programa.value);
+    }
+    if (escuelaUnidadAcademica.present) {
+      map['escuela_unidad_academica'] =
+          Variable<String>(escuelaUnidadAcademica.value);
+    }
+    if (grupo.present) {
+      map['grupo'] = Variable<String>(grupo.value);
     }
     if (discapacidad.present) {
       map['discapacidad'] = Variable<String>(discapacidad.value);
@@ -1083,6 +1167,8 @@ class HealthRecordsCompanion extends UpdateCompanion<HealthRecord> {
           ..write('sexo: $sexo, ')
           ..write('categoria: $categoria, ')
           ..write('programa: $programa, ')
+          ..write('escuelaUnidadAcademica: $escuelaUnidadAcademica, ')
+          ..write('grupo: $grupo, ')
           ..write('discapacidad: $discapacidad, ')
           ..write('tipoDiscapacidad: $tipoDiscapacidad, ')
           ..write('alergias: $alergias, ')
@@ -2651,6 +2737,8 @@ typedef $$HealthRecordsTableCreateCompanionBuilder = HealthRecordsCompanion
   Value<String?> sexo,
   Value<String?> categoria,
   Value<String?> programa,
+  Value<String> escuelaUnidadAcademica,
+  Value<String> grupo,
   Value<String?> discapacidad,
   Value<String?> tipoDiscapacidad,
   Value<String?> alergias,
@@ -2677,6 +2765,8 @@ typedef $$HealthRecordsTableUpdateCompanionBuilder = HealthRecordsCompanion
   Value<String?> sexo,
   Value<String?> categoria,
   Value<String?> programa,
+  Value<String> escuelaUnidadAcademica,
+  Value<String> grupo,
   Value<String?> discapacidad,
   Value<String?> tipoDiscapacidad,
   Value<String?> alergias,
@@ -2729,6 +2819,13 @@ class $$HealthRecordsTableFilterComposer
 
   ColumnFilters<String> get programa => $composableBuilder(
       column: $table.programa, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get escuelaUnidadAcademica => $composableBuilder(
+      column: $table.escuelaUnidadAcademica,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get grupo => $composableBuilder(
+      column: $table.grupo, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get discapacidad => $composableBuilder(
       column: $table.discapacidad, builder: (column) => ColumnFilters(column));
@@ -2817,6 +2914,13 @@ class $$HealthRecordsTableOrderingComposer
 
   ColumnOrderings<String> get programa => $composableBuilder(
       column: $table.programa, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get escuelaUnidadAcademica => $composableBuilder(
+      column: $table.escuelaUnidadAcademica,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get grupo => $composableBuilder(
+      column: $table.grupo, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get discapacidad => $composableBuilder(
       column: $table.discapacidad,
@@ -2907,6 +3011,12 @@ class $$HealthRecordsTableAnnotationComposer
   GeneratedColumn<String> get programa =>
       $composableBuilder(column: $table.programa, builder: (column) => column);
 
+  GeneratedColumn<String> get escuelaUnidadAcademica => $composableBuilder(
+      column: $table.escuelaUnidadAcademica, builder: (column) => column);
+
+  GeneratedColumn<String> get grupo =>
+      $composableBuilder(column: $table.grupo, builder: (column) => column);
+
   GeneratedColumn<String> get discapacidad => $composableBuilder(
       column: $table.discapacidad, builder: (column) => column);
 
@@ -2985,6 +3095,8 @@ class $$HealthRecordsTableTableManager extends RootTableManager<
             Value<String?> sexo = const Value.absent(),
             Value<String?> categoria = const Value.absent(),
             Value<String?> programa = const Value.absent(),
+            Value<String> escuelaUnidadAcademica = const Value.absent(),
+            Value<String> grupo = const Value.absent(),
             Value<String?> discapacidad = const Value.absent(),
             Value<String?> tipoDiscapacidad = const Value.absent(),
             Value<String?> alergias = const Value.absent(),
@@ -3010,6 +3122,8 @@ class $$HealthRecordsTableTableManager extends RootTableManager<
             sexo: sexo,
             categoria: categoria,
             programa: programa,
+            escuelaUnidadAcademica: escuelaUnidadAcademica,
+            grupo: grupo,
             discapacidad: discapacidad,
             tipoDiscapacidad: tipoDiscapacidad,
             alergias: alergias,
@@ -3035,6 +3149,8 @@ class $$HealthRecordsTableTableManager extends RootTableManager<
             Value<String?> sexo = const Value.absent(),
             Value<String?> categoria = const Value.absent(),
             Value<String?> programa = const Value.absent(),
+            Value<String> escuelaUnidadAcademica = const Value.absent(),
+            Value<String> grupo = const Value.absent(),
             Value<String?> discapacidad = const Value.absent(),
             Value<String?> tipoDiscapacidad = const Value.absent(),
             Value<String?> alergias = const Value.absent(),
@@ -3060,6 +3176,8 @@ class $$HealthRecordsTableTableManager extends RootTableManager<
             sexo: sexo,
             categoria: categoria,
             programa: programa,
+            escuelaUnidadAcademica: escuelaUnidadAcademica,
+            grupo: grupo,
             discapacidad: discapacidad,
             tipoDiscapacidad: tipoDiscapacidad,
             alergias: alergias,

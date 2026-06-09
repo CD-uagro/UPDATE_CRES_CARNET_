@@ -31,23 +31,24 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
 
   Future<void> _loadPendingData() async {
     setState(() => _loading = true);
-    
+
     try {
       final records = await widget.db.getPendingRecords();
       final notes = await widget.db.getPendingNotes();
       final citas = await widget.db.getPendingCitas();
       final vacunaciones = await widget.db.getPendingVacunaciones();
-      
+
       // DEBUG: Imprimir TODOS los carnets para diagnosticar
       print('=== DEBUG CARNETS ===');
       final allRecords = await widget.db.getAllRecordsWithSyncStatus();
       print('Total carnets en DB: ${allRecords.length}');
       for (final record in allRecords) {
-        print('  - ${record.matricula} | ${record.nombreCompleto} | synced=${record.synced}');
+        print(
+            '  - ${record.matricula} | ${record.nombreCompleto} | synced=${record.synced}');
       }
       print('Carnets pendientes (synced=false): ${records.length}');
       print('=====================');
-      
+
       if (mounted) {
         setState(() {
           _pendingRecords = records;
@@ -65,17 +66,17 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
 
   Future<void> _syncAll() async {
     setState(() => _syncing = true);
-    
+
     try {
       final syncService = SyncService(widget.db);
       final result = await syncService.syncAll();
-      
+
       if (mounted) {
         setState(() => _syncing = false);
-        
+
         // Recargar datos
         await _loadPendingData();
-        
+
         // Mostrar resultado
         showDialog(
           context: context,
@@ -100,10 +101,14 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
                   else ...[
                     Text('Total procesados: ${result.totalPending}'),
                     const Divider(),
-                    _buildResultRow('Carnets', result.recordsSynced, result.recordsErrors),
-                    _buildResultRow('Notas', result.notesSynced, result.notesErrors),
-                    _buildResultRow('Citas', result.citasSynced, result.citasErrors),
-                    _buildResultRow('Vacunaciones', result.vacunacionesSynced, result.vacunacionesErrors),
+                    _buildResultRow(
+                        'Carnets', result.recordsSynced, result.recordsErrors),
+                    _buildResultRow(
+                        'Notas', result.notesSynced, result.notesErrors),
+                    _buildResultRow(
+                        'Citas', result.citasSynced, result.citasErrors),
+                    _buildResultRow('Vacunaciones', result.vacunacionesSynced,
+                        result.vacunacionesErrors),
                   ],
                 ],
               ),
@@ -120,7 +125,7 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _syncing = false);
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al sincronizar: $e'),
@@ -133,9 +138,9 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
 
   Future<void> _showAllRecordsDebug() async {
     final allRecords = await widget.db.getAllRecordsWithSyncStatus();
-    
+
     if (!mounted) return;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -168,11 +173,13 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
                             children: [
                               Text(
                                 r.nombreCompleto,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
                               ),
                               Text(
                                 'ID: ${r.id} | ${r.matricula} | ${r.synced ? "SINCRONIZADO" : "PENDIENTE"}',
-                                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                style: TextStyle(
+                                    fontSize: 11, color: Colors.grey.shade600),
                               ),
                             ],
                           ),
@@ -187,7 +194,9 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
                               Navigator.pop(context);
                               await _loadPendingData();
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('${r.matricula} marcado como pendiente')),
+                                SnackBar(
+                                    content: Text(
+                                        '${r.matricula} marcado como pendiente')),
                               );
                             },
                           ),
@@ -202,10 +211,11 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
           if (allRecords.where((r) => r.synced).isNotEmpty)
             TextButton.icon(
               icon: const Icon(Icons.delete_sweep, color: Colors.red),
-              label: const Text('Limpiar Sincronizados', style: TextStyle(color: Colors.red)),
+              label: const Text('Limpiar Sincronizados',
+                  style: TextStyle(color: Colors.red)),
               onPressed: () async {
                 final syncedCount = allRecords.where((r) => r.synced).length;
-                
+
                 // Confirmar antes de borrar
                 final confirmed = await showDialog<bool>(
                   context: context,
@@ -223,13 +233,14 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        style:
+                            TextButton.styleFrom(foregroundColor: Colors.red),
                         child: const Text('Eliminar'),
                       ),
                     ],
                   ),
                 );
-                
+
                 if (confirmed == true) {
                   // Eliminar carnets sincronizados
                   final db = widget.db;
@@ -238,14 +249,15 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
                           ..where((tbl) => tbl.id.equals(record.id)))
                         .go();
                   }
-                  
+
                   if (!mounted) return;
                   Navigator.pop(context); // Cerrar diálogo de debug
                   await _loadPendingData(); // Recargar datos
-                  
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('✅ $syncedCount carnets sincronizados eliminados'),
+                      content: Text(
+                          '✅ $syncedCount carnets sincronizados eliminados'),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -263,7 +275,7 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
 
   Widget _buildResultRow(String label, int success, int errors) {
     if (success == 0 && errors == 0) return const SizedBox.shrink();
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -281,9 +293,11 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final totalPending = _pendingRecords.length + _pendingNotes.length + 
-                        _pendingCitas.length + _pendingVacunaciones.length;
-    
+    final totalPending = _pendingRecords.length +
+        _pendingNotes.length +
+        _pendingCitas.length +
+        _pendingVacunaciones.length;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Datos Pendientes de Sincronizar'),
@@ -371,31 +385,30 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    if (_pendingRecords.isNotEmpty)
-                      _buildCarnetsSection(),
+                    if (_pendingRecords.isNotEmpty) _buildCarnetsSection(),
                     if (_pendingNotes.isNotEmpty)
                       _buildSection(
                         '📝 Notas Médicas',
                         _pendingNotes.length,
-                        _pendingNotes.map((n) => 
-                          '${n.matricula} - ${n.departamento}'
-                        ).toList(),
+                        _pendingNotes
+                            .map((n) => '${n.matricula} - ${n.departamento}')
+                            .toList(),
                       ),
                     if (_pendingCitas.isNotEmpty)
                       _buildSection(
                         '📅 Citas',
                         _pendingCitas.length,
-                        _pendingCitas.map((c) => 
-                          '${c.matricula} - ${c.motivo}'
-                        ).toList(),
+                        _pendingCitas
+                            .map((c) => '${c.matricula} - ${c.motivo}')
+                            .toList(),
                       ),
                     if (_pendingVacunaciones.isNotEmpty)
                       _buildSection(
                         '💉 Vacunaciones',
                         _pendingVacunaciones.length,
-                        _pendingVacunaciones.map((v) => 
-                          '${v.matricula} - ${v.vacuna}'
-                        ).toList(),
+                        _pendingVacunaciones
+                            .map((v) => '${v.matricula} - ${v.vacuna}')
+                            .toList(),
                       ),
                   ],
                 ),
@@ -411,10 +424,12 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
         children: [
           ..._pendingRecords.take(10).map((record) => ListTile(
                 dense: true,
-                leading: const Icon(Icons.pending, size: 16, color: Colors.orange),
+                leading:
+                    const Icon(Icons.pending, size: 16, color: Colors.orange),
                 title: Text(
                   record.nombreCompleto,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500),
                 ),
                 subtitle: Text('Matrícula: ${record.matricula}'),
                 trailing: IconButton(
@@ -430,7 +445,7 @@ class _PendingSyncScreenState extends State<PendingSyncScreen> {
                         ),
                       ),
                     );
-                    
+
                     // Si el diagnóstico tuvo éxito, recargar y mostrar confirmación
                     if (result == true && mounted) {
                       await _loadPendingData();

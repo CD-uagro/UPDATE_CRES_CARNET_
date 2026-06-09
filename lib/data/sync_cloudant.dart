@@ -1,4 +1,4 @@
-﻿import 'db.dart' as DB;
+import 'db.dart' as DB;
 import 'api_service.dart';
 
 /// Sube todas las notas locales a FastAPI.

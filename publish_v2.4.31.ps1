@@ -1,6 +1,18 @@
 # Script para publicar la actualización v2.4.31
 # Ejecutar después de subir el ZIP a GitHub Releases
 
+param(
+    [switch]$AllowLegacy,
+    [switch]$ConfirmProduction
+)
+
+# LEGACY SCRIPT - No usar para releases actuales. Usar version.json + tool/sync_version.ps1 + build_installer.ps1.
+if (-not $AllowLegacy -or -not $ConfirmProduction) {
+    Write-Error "Script legacy bloqueado: puede publicar metadata antigua en backend productivo."
+    Write-Host "Uso consciente: .\publish_v2.4.31.ps1 -AllowLegacy -ConfirmProduction" -ForegroundColor Yellow
+    exit 1
+}
+
 $ErrorActionPreference = "Stop"
 
 Write-Host "========================================" -ForegroundColor Cyan

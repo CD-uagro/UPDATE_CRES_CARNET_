@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../data/auth_service.dart';
 import '../data/offline_manager.dart';
-import '../ui/uagro_theme.dart';
 
 /// Widget que muestra el estado de conexión y permite sincronización manual
 class ConnectionIndicator extends StatefulWidget {
@@ -49,13 +48,15 @@ class _ConnectionIndicatorState extends State<ConnectionIndicator> {
   }
 
   void _listenToConnectivity() {
-    _connectivitySub = OfflineManager.connectivityStream.listen((results) async {
-      final hasConnection = results.any((result) => result != ConnectivityResult.none);
+    _connectivitySub =
+        OfflineManager.connectivityStream.listen((results) async {
+      final hasConnection =
+          results.any((result) => result != ConnectivityResult.none);
       if (mounted) {
         setState(() {
           _hasInternet = hasConnection;
         });
-        
+
         // Si recuperamos conexión, intentar sincronizar automáticamente
         if (hasConnection && _isOfflineMode) {
           await _syncNow();
@@ -65,7 +66,8 @@ class _ConnectionIndicatorState extends State<ConnectionIndicator> {
   }
 
   void _listenToOfflineMode() {
-    _offlineModeSub = OfflineManager.offlineModeStream.listen((isOffline) async {
+    _offlineModeSub =
+        OfflineManager.offlineModeStream.listen((isOffline) async {
       if (!mounted) return;
       setState(() {
         _isOfflineMode = isOffline;
@@ -78,18 +80,18 @@ class _ConnectionIndicatorState extends State<ConnectionIndicator> {
 
   Future<void> _syncNow() async {
     if (_isSyncing) return;
-    
+
     setState(() {
       _isSyncing = true;
     });
 
     final success = await AuthService.forceSyncNow();
-    
+
     if (mounted) {
       setState(() {
         _isSyncing = false;
       });
-      
+
       if (success) {
         await _checkConnection();
         if (mounted) {
@@ -138,11 +140,12 @@ class _ConnectionIndicatorState extends State<ConnectionIndicator> {
           // Ícono de estado
           Icon(
             _isOfflineMode ? Icons.cloud_off : Icons.cloud_queue,
-            color: _isOfflineMode ? Colors.orange.shade700 : Colors.blue.shade700,
+            color:
+                _isOfflineMode ? Colors.orange.shade700 : Colors.blue.shade700,
             size: 28,
           ),
           const SizedBox(width: 12),
-          
+
           // Información de estado
           Expanded(
             child: Column(
@@ -154,7 +157,9 @@ class _ConnectionIndicatorState extends State<ConnectionIndicator> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
-                    color: _isOfflineMode ? Colors.orange.shade900 : Colors.blue.shade900,
+                    color: _isOfflineMode
+                        ? Colors.orange.shade900
+                        : Colors.blue.shade900,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -166,13 +171,15 @@ class _ConnectionIndicatorState extends State<ConnectionIndicator> {
                           : 'Conectando...',
                   style: TextStyle(
                     fontSize: 12,
-                    color: _isOfflineMode ? Colors.orange.shade700 : Colors.blue.shade700,
+                    color: _isOfflineMode
+                        ? Colors.orange.shade700
+                        : Colors.blue.shade700,
                   ),
                 ),
               ],
             ),
           ),
-          
+
           // Botón de sincronización
           if (_hasInternet && _pendingSync > 0)
             _isSyncing
@@ -231,7 +238,8 @@ class _ConnectionBadgeState extends State<ConnectionBadge> {
   }
 
   void _listenToConnectivity() {
-    _connectivitySub = OfflineManager.connectivityStream.listen((results) async {
+    _connectivitySub =
+        OfflineManager.connectivityStream.listen((results) async {
       if (!mounted) return;
       await _checkOfflineMode();
     });

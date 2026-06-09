@@ -10,10 +10,10 @@ class SyncLogger {
 
   static void enable() => _enabled = true;
   static void disable() => _enabled = false;
-  
+
   static void log(String message) {
     if (!_enabled) return;
-    
+
     final timestamp = DateFormat('HH:mm:ss.SSS').format(DateTime.now());
     final logEntry = '[$timestamp] $message';
     _logs.add(logEntry);
@@ -35,11 +35,12 @@ class SyncLogger {
       final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final file = File('${directory.path}/sync_log_$timestamp.txt');
-      
+
       final content = StringBuffer();
       content.writeln('='.padRight(80, '='));
       content.writeln('CRES CARNETS - LOG DE SINCRONIZACIÓN');
-      content.writeln('Generado: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}');
+      content.writeln(
+          'Generado: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}');
       content.writeln('='.padRight(80, '='));
       content.writeln('');
       content.writeln(_logs.join('\n'));
@@ -47,7 +48,7 @@ class SyncLogger {
       content.writeln('='.padRight(80, '='));
       content.writeln('FIN DEL LOG');
       content.writeln('='.padRight(80, '='));
-      
+
       await file.writeAsString(content.toString());
       return file.path;
     } catch (e) {

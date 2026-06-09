@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
 
+import 'version_comparator.dart';
+
 /// Modelo de datos para una entrada del changelog
 class ChangelogEntry {
   final String version;
@@ -17,7 +19,8 @@ class ChangelogEntry {
     return ChangelogEntry(
       version: json['version'] as String,
       date: json['date'] as String,
-      changes: (json['changes'] as List<dynamic>).map((e) => e.toString()).toList(),
+      changes:
+          (json['changes'] as List<dynamic>).map((e) => e.toString()).toList(),
     );
   }
 }
@@ -41,16 +44,80 @@ class AppVersionInfo {
   });
 
   factory AppVersionInfo.fromJson(Map<String, dynamic> json) {
+    final version = json['version'] as String;
+    final releaseDate = json['releaseDate'] as String;
+
     return AppVersionInfo(
-      version: json['version'] as String,
+      version: version,
       buildNumber: json['buildNumber'] as int,
-      releaseDate: json['releaseDate'] as String,
+      releaseDate: releaseDate,
       channel: json['channel'] as String,
       minimumVersion: json['minimumVersion'] as String,
-      changelog: (json['changelog'] as List<dynamic>)
-          .map((e) => ChangelogEntry.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      changelog: _parseChangelog(json['changelog'], version, releaseDate),
     );
+  }
+
+  static List<ChangelogEntry> _parseChangelog(
+    dynamic value,
+    String version,
+    String releaseDate,
+  ) {
+    if (value is! List) return [];
+
+    final entries = <ChangelogEntry>[];
+
+    for (final item in value) {
+      try {
+        if (item is String) {
+          entries.add(ChangelogEntry(
+            version: version,
+            date: releaseDate,
+            changes: [item],
+          ));
+        } else if (item is Map) {
+          final changelogItem = Map<String, dynamic>.from(item);
+          if (changelogItem.containsKey('version') ||
+              changelogItem.containsKey('date') ||
+              changelogItem.containsKey('changes')) {
+            entries.add(ChangelogEntry(
+              version: (changelogItem['version'] ?? version).toString(),
+              date: (changelogItem['date'] ?? releaseDate).toString(),
+              changes: (changelogItem['changes'] is List)
+                  ? (changelogItem['changes'] as List<dynamic>)
+                      .map((e) => e.toString())
+                      .toList()
+                  : [
+                      if (changelogItem['title'] != null)
+                        changelogItem['title'].toString(),
+                      if (changelogItem['description'] != null)
+                        changelogItem['description'].toString(),
+                    ],
+            ));
+          } else {
+            entries.add(ChangelogEntry(
+              version: version,
+              date: releaseDate,
+              changes: [
+                if (changelogItem['title'] != null)
+                  changelogItem['title'].toString(),
+                if (changelogItem['description'] != null)
+                  changelogItem['description'].toString(),
+              ],
+            ));
+          }
+        } else if (item != null) {
+          entries.add(ChangelogEntry(
+            version: version,
+            date: releaseDate,
+            changes: [item.toString()],
+          ));
+        }
+      } catch (e) {
+        // El changelog no debe impedir cargar version/buildNumber.
+      }
+    }
+
+    return entries.where((entry) => entry.changes.isNotEmpty).toList();
   }
 
   /// Obtiene el changelog de la versión actual
@@ -84,7 +151,8 @@ class VersionService {
   /// Carga la información de versión desde el archivo assets/version.json
   Future<void> loadVersion() async {
     try {
-      final String jsonString = await rootBundle.loadString('assets/version.json');
+      final String jsonString =
+          await rootBundle.loadString('assets/version.json');
       final Map<String, dynamic> jsonData = json.decode(jsonString);
       _versionInfo = AppVersionInfo.fromJson(jsonData);
       _isLoaded = true;
@@ -111,19 +179,7 @@ class VersionService {
   int compareVersion(String otherVersion) {
     if (_versionInfo == null) return -1;
 
-    final current = _versionInfo!.version.split('.').map(int.parse).toList();
-    final other = otherVersion.split('.').map(int.parse).toList();
-
-    for (int i = 0; i < 3; i++) {
-      final currentPart = i < current.length ? current[i] : 0;
-      final otherPart = i < other.length ? other[i] : 0;
-      
-      if (currentPart != otherPart) {
-        return currentPart.compareTo(otherPart);
-      }
-    }
-    
-    return 0;
+    return compareSemanticVersions(_versionInfo!.version, otherVersion);
   }
 
   /// Verifica si hay una actualización disponible
@@ -135,7 +191,7 @@ class VersionService {
   /// Obtiene un resumen de la versión para mostrar en UI
   String getVersionSummary() {
     if (_versionInfo == null) return 'Versión no disponible';
-    
+
     return '''
 Versión: ${_versionInfo!.fullVersion}
 Fecha: ${_versionInfo!.releaseDate}
@@ -146,11 +202,11 @@ Canal: ${_versionInfo!.channel}
   /// Obtiene el changelog formateado para mostrar en UI
   String getChangelogFormatted({int? maxVersions}) {
     if (_versionInfo == null) return 'Changelog no disponible';
-    
+
     final entries = maxVersions != null
         ? _versionInfo!.changelog.take(maxVersions)
         : _versionInfo!.changelog;
-    
+
     final buffer = StringBuffer();
     for (final entry in entries) {
       buffer.writeln('${entry.version} - ${entry.date}');
@@ -159,7 +215,7 @@ Canal: ${_versionInfo!.channel}
       }
       buffer.writeln();
     }
-    
+
     return buffer.toString();
   }
 }

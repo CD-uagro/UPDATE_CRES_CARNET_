@@ -7,7 +7,7 @@ import 'dashboard_screen.dart';
 class CitaFormScreen extends StatefulWidget {
   final String matricula;
   final dynamic db;
-  
+
   const CitaFormScreen({super.key, required this.matricula, this.db});
 
   @override
@@ -18,11 +18,11 @@ class _CitaFormScreenState extends State<CitaFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _motivoController = TextEditingController();
   final _departamentoController = TextEditingController();
-  
+
   DateTime _inicioDate = DateTime.now().add(Duration(days: 1));
   TimeOfDay _inicioTime = TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _finTime = TimeOfDay(hour: 9, minute: 30);
-  
+
   bool _isLoading = false;
 
   @override
@@ -35,11 +35,13 @@ class _CitaFormScreenState extends State<CitaFormScreen> {
         actions: [
           // Botón de inicio sutil
           IconButton(
-            icon: const Icon(Icons.home_outlined, color: Colors.white70, size: 22),
+            icon: const Icon(Icons.home_outlined,
+                color: Colors.white70, size: 22),
             tooltip: 'Ir al inicio',
             onPressed: () {
               Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => DashboardScreen(db: widget.db)),
+                MaterialPageRoute(
+                    builder: (context) => DashboardScreen(db: widget.db)),
                 (route) => false,
               );
             },
@@ -67,7 +69,7 @@ class _CitaFormScreenState extends State<CitaFormScreen> {
                 },
               ),
               SizedBox(height: 16),
-              
+
               // Departamento
               TextFormField(
                 controller: _departamentoController,
@@ -77,7 +79,7 @@ class _CitaFormScreenState extends State<CitaFormScreen> {
                 ),
               ),
               SizedBox(height: 16),
-              
+
               // Fecha
               Card(
                 child: ListTile(
@@ -89,7 +91,7 @@ class _CitaFormScreenState extends State<CitaFormScreen> {
                 ),
               ),
               SizedBox(height: 8),
-              
+
               // Hora inicio
               Card(
                 child: ListTile(
@@ -101,7 +103,7 @@ class _CitaFormScreenState extends State<CitaFormScreen> {
                 ),
               ),
               SizedBox(height: 8),
-              
+
               // Hora fin
               Card(
                 child: ListTile(
@@ -112,9 +114,9 @@ class _CitaFormScreenState extends State<CitaFormScreen> {
                   onTap: _selectFinTime,
                 ),
               ),
-              
+
               Spacer(),
-              
+
               // Botones de acción
               Row(
                 children: [
@@ -138,9 +140,9 @@ class _CitaFormScreenState extends State<CitaFormScreen> {
                         foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: _isLoading 
-                        ? CircularProgressIndicator(color: Colors.white)
-                        : Text('Guardar'),
+                      child: _isLoading
+                          ? CircularProgressIndicator(color: Colors.white)
+                          : Text('Guardar'),
                     ),
                   ),
                 ],
@@ -226,16 +228,16 @@ class _CitaFormScreenState extends State<CitaFormScreen> {
         "matricula": widget.matricula,
         "inicio": inicio.toUtc().toIso8601String(), // ISO 8601 UTC
         "fin": fin.toUtc().toIso8601String(),
-        "motivo": _motivoController.text.trim().isEmpty 
-          ? "SEGUIMIENTO" 
-          : _motivoController.text.trim(),
+        "motivo": _motivoController.text.trim().isEmpty
+            ? "SEGUIMIENTO"
+            : _motivoController.text.trim(),
         "departamento": _departamentoController.text.trim(),
         "estado": "programada"
       };
 
       // Llamar ApiService.createCita
       final result = await ApiService.createCita(payload);
-      
+
       if (result != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -254,7 +256,6 @@ class _CitaFormScreenState extends State<CitaFormScreen> {
           );
         }
       }
-
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

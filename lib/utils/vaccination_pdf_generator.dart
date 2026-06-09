@@ -3,7 +3,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter/services.dart' show rootBundle;
 
 class VaccinationPdfGenerator {
   /// Generar PDF con el reporte de vacunación de una campaña
@@ -35,19 +34,19 @@ class VaccinationPdfGenerator {
         build: (context) => [
           // Encabezado
           _buildHeader(campaignName, vaccine, description, startDate),
-          
+
           pw.SizedBox(height: 20),
-          
+
           // Resumen
           _buildSummary(records),
-          
+
           pw.SizedBox(height: 20),
-          
+
           // Tabla de registros
           _buildTable(records),
-          
+
           pw.SizedBox(height: 30),
-          
+
           // Pie de página
           _buildFooter(),
         ],
@@ -128,11 +127,11 @@ class VaccinationPdfGenerator {
             ),
           ],
         ),
-        
+
         pw.SizedBox(height: 20),
         pw.Divider(color: PdfColors.purple300, thickness: 2),
         pw.SizedBox(height: 16),
-        
+
         // Información de la campaña
         pw.Text(
           'Campaña: $campaignName',
@@ -176,7 +175,7 @@ class VaccinationPdfGenerator {
   static pw.Widget _buildSummary(List<dynamic> records) {
     final totalRecords = records.length;
     final uniqueStudents = records.map((r) => r['matricula']).toSet().length;
-    
+
     // Contar por dosis
     final dosisCount = <int, int>{};
     for (var record in records) {
@@ -253,7 +252,7 @@ class VaccinationPdfGenerator {
             _buildTableCell('Aplicado por', isHeader: true),
           ],
         ),
-        
+
         // Filas de datos
         ...records.map((record) {
           return pw.TableRow(
@@ -263,8 +262,8 @@ class VaccinationPdfGenerator {
               _buildTableCell(record['dosis']?.toString() ?? '1'),
               _buildTableCell(
                 record['fechaAplicacion'] != null
-                    ? DateFormat('dd/MM/yyyy').format(
-                        DateTime.parse(record['fechaAplicacion']))
+                    ? DateFormat('dd/MM/yyyy')
+                        .format(DateTime.parse(record['fechaAplicacion']))
                     : 'N/A',
               ),
               _buildTableCell(record['aplicadoPor'] ?? 'N/A'),

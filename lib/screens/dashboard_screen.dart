@@ -10,26 +10,32 @@ import 'package:cres_carnets_ibmcloud/screens/pending_sync_screen.dart';
 import 'package:cres_carnets_ibmcloud/ui/uagro_theme.dart';
 import 'package:cres_carnets_ibmcloud/ui/connection_indicator.dart';
 import 'package:cres_carnets_ibmcloud/ui/mobile_adaptive.dart'; // Para detectar móvil
-import 'package:cres_carnets_ibmcloud/data/db.dart' as DB;
+import 'package:cres_carnets_ibmcloud/data/db.dart' as app_db;
 import 'package:cres_carnets_ibmcloud/data/auth_service.dart';
 import 'package:cres_carnets_ibmcloud/data/sync_service.dart';
 import 'package:cres_carnets_ibmcloud/services/version_service.dart';
 import 'package:cres_carnets_ibmcloud/services/update_manager.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Dashboard principal después del login
 /// Muestra las 4 opciones principales del sistema
 class DashboardScreen extends StatefulWidget {
-  final DB.AppDatabase db;
-  const DashboardScreen({Key? key, required this.db}) : super(key: key);
+  final app_db.AppDatabase db;
+  const DashboardScreen({super.key, required this.db});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  static const String _observatoryUrl = String.fromEnvironment(
+    'SASU_OBSERVATORIO_URL',
+    defaultValue: '',
+  );
+
   AuthUser? _currentUser;
   bool _loadingUser = true;
-  
+
   // Permisos del usuario actual
   bool _canCreateCarnet = false;
   bool _canManageExpedientes = false;
@@ -55,7 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!versionService.isLoaded) {
         await versionService.loadVersion();
       }
-      
+
       final versionInfo = versionService.versionInfo;
       if (versionInfo == null) {
         debugPrint('⚠️ No se pudo cargar información de versión');
@@ -66,7 +72,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         currentVersion: versionInfo.version,
         currentBuild: versionInfo.buildNumber,
       );
-      
+
       // Verificar actualizaciones automáticamente después de cargar el dashboard
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted && _updateManager != null) {
@@ -100,7 +106,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final canExpedientes = await AuthService.hasPermission('notas:write');
     final canPromocion = await AuthService.hasPermission('promociones:read');
     final canVacunacion = await AuthService.hasPermission('vacunacion:read');
-    
+
     if (mounted) {
       setState(() {
         _canCreateCarnet = canCarnet;
@@ -125,13 +131,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       debugPrint('Error al obtener versión: $e');
     }
-    return '2.4.33';
+    return 'Versión no disponible';
   }
 
   /// Verificar permiso antes de navegar
   Future<bool> _checkPermission(String permission, String feature) async {
     final hasPermission = await AuthService.hasPermission(permission);
-    
+
     if (!hasPermission && mounted) {
       showDialog(
         context: context,
@@ -156,7 +162,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       );
     }
-    
+
     return hasPermission;
   }
 
@@ -214,20 +220,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   else ...[
                     Text('📊 Total items procesados: ${result.totalPending}'),
                     const SizedBox(height: 8),
-                    Text('✅ Sincronizados: ${result.totalSynced}', 
-                      style: const TextStyle(color: Colors.green)),
+                    Text('✅ Sincronizados: ${result.totalSynced}',
+                        style: const TextStyle(color: Colors.green)),
                     if (result.totalErrors > 0)
-                      Text('❌ Con errores: ${result.totalErrors}', 
-                        style: const TextStyle(color: Colors.red)),
+                      Text('❌ Con errores: ${result.totalErrors}',
+                          style: const TextStyle(color: Colors.red)),
                     const Divider(),
                     if (result.recordsSynced > 0 || result.recordsErrors > 0)
-                      Text('Expedientes: ${result.recordsSynced}✓ ${result.recordsErrors}✗'),
+                      Text(
+                          'Expedientes: ${result.recordsSynced}✓ ${result.recordsErrors}✗'),
                     if (result.notesSynced > 0 || result.notesErrors > 0)
-                      Text('Notas: ${result.notesSynced}✓ ${result.notesErrors}✗'),
+                      Text(
+                          'Notas: ${result.notesSynced}✓ ${result.notesErrors}✗'),
                     if (result.citasSynced > 0 || result.citasErrors > 0)
-                      Text('Citas: ${result.citasSynced}✓ ${result.citasErrors}✗'),
-                    if (result.vacunacionesSynced > 0 || result.vacunacionesErrors > 0)
-                      Text('Vacunaciones: ${result.vacunacionesSynced}✓ ${result.vacunacionesErrors}✗'),
+                      Text(
+                          'Citas: ${result.citasSynced}✓ ${result.citasErrors}✗'),
+                    if (result.vacunacionesSynced > 0 ||
+                        result.vacunacionesErrors > 0)
+                      Text(
+                          'Vacunaciones: ${result.vacunacionesSynced}✓ ${result.vacunacionesErrors}✗'),
                   ],
                 ],
               ),
@@ -301,6 +312,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
           (route) => false,
         );
       }
+    }
+  }
+
+  Future<void> _openObservatory() async {
+    if (_observatoryUrl.trim().isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Observatorio pendiente de configurar'),
+        ),
+      );
+      return;
+    }
+
+    final uri = Uri.tryParse(_observatoryUrl);
+    if (uri == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('URL del Observatorio no valida'),
+        ),
+      );
+      return;
+    }
+
+    final launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No fue posible abrir el Observatorio'),
+        ),
+      );
     }
   }
 
@@ -401,7 +447,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Icon(Icons.logout, size: 18, color: Colors.red),
                 SizedBox(width: 8),
-                Text('Cerrar sesión', style: TextStyle(fontSize: 13, color: Colors.red)),
+                Text('Cerrar sesión',
+                    style: TextStyle(fontSize: 13, color: Colors.red)),
               ],
             ),
           ),
@@ -485,8 +532,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     // Detectar si es móvil para AppBar compacto
-    final isMobile = MobileAdaptive.isMobilePlatform && MobileAdaptive.isPhone(context);
-    
+    final isMobile =
+        MobileAdaptive.isMobilePlatform && MobileAdaptive.isPhone(context);
+    final userName = _currentUser?.nombreCompleto ?? 'Cargando usuario';
+    final campusName = _currentUser != null
+        ? AuthService.formatCampusName(_currentUser!.campus)
+        : 'Campus pendiente';
+
     return Scaffold(
       backgroundColor: UAGroColors.grisClaro,
       appBar: AppBar(
@@ -505,7 +557,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       if (_currentUser != null)
                         Text(
                           '${AuthService.formatRoleName(_currentUser!.rol)} - ${AuthService.formatCampusName(_currentUser!.campus)}',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.normal),
                         ),
                     ],
                   ),
@@ -516,273 +569,168 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ? _buildMobileActions(context) // Acciones compactas para móvil
             : _buildDesktopActions(context), // Todas las acciones para desktop
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              UAGroColors.azulMarino,
-              UAGroColors.azulMarino.withValues(alpha: 0.8),
-              UAGroColors.grisClaro,
-            ],
-          ),
-        ),
-        child: SafeArea(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
           child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1180),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Indicador de conexión
-                  const ConnectionIndicator(),
-                  
-                  // Logo o título
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.medical_services,
-                          size: 60,
-                          color: UAGroColors.azulMarino,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'SASU',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: UAGroColors.azulMarino,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Sistema de Atención en Salud Universitaria',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: UAGroColors.azulMarino,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'CRES Llano Largo',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        // Versión instalada
-                        FutureBuilder<String>(
-                          future: _getVersionString(),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasData) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: UAGroColors.azulMarino.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  'v${snapshot.data}',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: UAGroColors.azulMarino,
-                                  ),
-                                ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          },
-                        ),
-                      ],
-                    ),
+                  _InstitutionalHeader(
+                    userName: userName,
+                    campusName: campusName,
+                    versionFuture: _getVersionString(),
                   ),
-
-                  const SizedBox(height: 40),
-
-                  // Título de secciones
-                  Text(
-                    'Selecciona una opción',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                  const SizedBox(height: 16),
+                  _StatusStrip(
+                    onSync: _handleSyncPendingData,
+                    onUpdates: () {
+                      if (_updateManager != null) {
+                        _updateManager!.checkForUpdatesManual(context);
+                      }
+                    },
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // Grid de opciones
+                  const SizedBox(height: 18),
+                  _SectionHeader(
+                    title: 'Centro de Servicios Universitarios',
+                    subtitle: 'SASU 2.5 - Universidad Autónoma de Guerrero',
+                  ),
+                  const SizedBox(height: 12),
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      // Responsive: 2 columnas en pantallas grandes, 1 en pequeñas
-                      final isWide = constraints.maxWidth > 600;
-                      
-                      // Lista de opciones visibles según permisos
-                      final List<Widget> visibleOptions = [];
-                      
-                      // Opción 1: Crear Carnet (solo si tiene permiso de escritura)
+                      final visibleOptions = <Widget>[];
+                      final maxWidth = constraints.maxWidth;
+                      final columns = maxWidth >= 980
+                          ? 4
+                          : maxWidth >= 640
+                              ? 2
+                              : 1;
+                      final spacing = 14.0;
+                      final cardWidth =
+                          (maxWidth - (spacing * (columns - 1))) / columns;
+
                       if (_canCreateCarnet) {
                         visibleOptions.add(
                           _DashboardCard(
                             icon: Icons.badge_outlined,
                             title: 'Crear Carnet',
-                            description: 'Registro de nuevo carnet estudiantil',
+                            description: 'Registro estudiantil',
                             color: UAGroColors.azulMarino,
                             onTap: () async {
-                              if (await _checkPermission('carnets:write', 'Crear Carnet')) {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => FormScreen(db: widget.db),
-                                  ),
-                                );
-                              }
+                              final allowed = await _checkPermission(
+                                'carnets:write',
+                                'Crear Carnet',
+                              );
+                              if (!allowed || !context.mounted) return;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => FormScreen(db: widget.db),
+                                ),
+                              );
                             },
-                            width: isWide ? 280 : constraints.maxWidth - 48,
+                            width: cardWidth,
                           ),
                         );
                       }
 
-                      // Opción 2: Administrar Expedientes (solo si puede crear notas)
                       if (_canManageExpedientes) {
                         visibleOptions.add(
                           _DashboardCard(
                             icon: Icons.folder_open,
                             title: 'Administrar Expedientes',
-                            description: 'Gestión de notas y expedientes médicos',
+                            description: 'Notas y expedientes médicos',
                             color: UAGroColors.rojoEscudo,
                             onTap: () async {
-                              if (await _checkPermission('notas:write', 'Administrar Expedientes')) {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => NuevaNotaScreen(db: widget.db),
-                                  ),
-                                );
-                              }
+                              final allowed = await _checkPermission(
+                                'notas:write',
+                                'Administrar Expedientes',
+                              );
+                              if (!allowed || !context.mounted) return;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      NuevaNotaScreen(db: widget.db),
+                                ),
+                              );
                             },
-                            width: isWide ? 280 : constraints.maxWidth - 48,
+                            width: cardWidth,
                           ),
                         );
                       }
 
-                      // Opción 3: Promoción de Salud
                       if (_canViewPromocion) {
                         visibleOptions.add(
                           _DashboardCard(
                             icon: Icons.campaign,
                             title: 'Promoción de Salud',
-                            description: 'Crear y gestionar promociones de salud',
+                            description: 'Campañas universitarias',
                             color: Colors.green[700]!,
                             onTap: () async {
-                              if (await _checkPermission('promociones:read', 'Promoción de Salud')) {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => PromocionSaludScreen(db: widget.db),
-                                  ),
-                                );
-                              }
+                              final allowed = await _checkPermission(
+                                'promociones:read',
+                                'Promoción de Salud',
+                              );
+                              if (!allowed || !context.mounted) return;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      PromocionSaludScreen(db: widget.db),
+                                ),
+                              );
                             },
-                            width: isWide ? 280 : constraints.maxWidth - 48,
+                            width: cardWidth,
                           ),
                         );
                       }
 
-                      // Opción 4: Vacunación (nueva)
                       if (_canViewVacunacion) {
                         visibleOptions.add(
                           _DashboardCard(
                             icon: Icons.vaccines,
                             title: 'Vacunación',
-                            description: 'Campañas y registro de vacunación',
+                            description: 'Registro y campañas',
                             color: Colors.purple[700]!,
                             onTap: () async {
-                              if (await _checkPermission('vacunacion:read', 'Vacunación')) {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const VaccinationScreen(),
-                                  ),
-                                );
-                              }
+                              final allowed = await _checkPermission(
+                                'vacunacion:read',
+                                'Vacunación',
+                              );
+                              if (!allowed || !context.mounted) return;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const VaccinationScreen(),
+                                ),
+                              );
                             },
-                            width: isWide ? 280 : constraints.maxWidth - 48,
+                            width: cardWidth,
                             badge: 'NUEVO',
                           ),
                         );
                       }
-                      
-                      // Si no tiene ningún permiso, mostrar mensaje
+
                       if (visibleOptions.isEmpty) {
-                        return Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.orange[50],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.orange[300]!),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.info_outline, size: 48, color: Colors.orange[700]),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Sin Permisos Asignados',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange[900],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Tu cuenta no tiene permisos para acceder a ninguna funcionalidad.\n'
-                                'Contacta al administrador del sistema.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
+                        return const _EmptyPermissionsPanel();
                       }
-                      
+
                       return Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
-                        alignment: WrapAlignment.center,
+                        spacing: spacing,
+                        runSpacing: spacing,
                         children: visibleOptions,
                       );
                     },
                   ),
-
-                  const SizedBox(height: 40),
-
-                  // Footer
+                  const SizedBox(height: 18),
+                  _ObservatoryCard(onTap: _openObservatory),
+                  const SizedBox(height: 18),
                   Text(
-                    'Versión 1.0 - CRES UAGro 2025',
+                    'Dirección de Innovación en la Gestión de la Salud Universitaria',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: UAGroColors.azulMarino.withValues(alpha: 0.68),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -819,71 +767,64 @@ class _DashboardCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: width,
+      height: 158,
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        elevation: 4,
+        borderRadius: BorderRadius.circular(8),
+        elevation: 1.5,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(color: color.withValues(alpha: 0.18)),
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: Stack(
               children: [
                 Column(
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Icono
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        icon,
-                        size: 40,
-                        color: color,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(icon, size: 24, color: color),
+                        ),
+                        const Spacer(),
+                        Icon(Icons.arrow_forward, size: 18, color: color),
+                      ],
                     ),
-
-                    const SizedBox(height: 16),
-
-                    // Título
+                    const Spacer(),
                     Text(
                       title,
-                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: color,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: UAGroColors.azulMarino,
                       ),
                     ),
-
-                    const SizedBox(height: 8),
-
-                    // Descripción
+                    const SizedBox(height: 6),
                     Text(
                       description,
-                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
+                        fontSize: 12,
+                        color: Colors.grey[700],
+                        height: 1.2,
                       ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Botón/Indicador
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: color,
                     ),
                   ],
                 ),
-
-                // Badge (si existe)
                 if (badge != null)
                   Positioned(
                     top: 0,
@@ -894,15 +835,15 @@ class _DashboardCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.orange,
-                        borderRadius: BorderRadius.circular(8),
+                        color: color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         badge!,
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Colors.black87,
                         ),
                       ),
                     ),
@@ -911,6 +852,384 @@ class _DashboardCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _InstitutionalHeader extends StatelessWidget {
+  final String userName;
+  final String campusName;
+  final Future<String> versionFuture;
+
+  const _InstitutionalHeader({
+    required this.userName,
+    required this.campusName,
+    required this.versionFuture,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: UAGroColors.azulMarino,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = constraints.maxWidth >= 760;
+          final identity = Column(
+            crossAxisAlignment:
+                wide ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+            children: [
+              Text(
+                'Universidad Autónoma de Guerrero',
+                textAlign: wide ? TextAlign.start : TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'SASU',
+                textAlign: wide ? TextAlign.start : TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.4,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Sistema de Atención en Salud Universitaria',
+                textAlign: wide ? TextAlign.start : TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.86),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Dirección de Innovación en la Gestión de la Salud Universitaria',
+                textAlign: wide ? TextAlign.start : TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.72),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          );
+
+          final details = Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: wide ? WrapAlignment.end : WrapAlignment.center,
+            children: [
+              _InfoChip(icon: Icons.person_outline, label: userName),
+              _InfoChip(icon: Icons.location_city, label: campusName),
+              const _InfoChip(icon: Icons.sync, label: 'Sincronización activa'),
+              FutureBuilder<String>(
+                future: versionFuture,
+                builder: (context, snapshot) {
+                  final version = snapshot.data ?? 'Cargando versión';
+                  return _InfoChip(
+                    icon: Icons.verified_outlined,
+                    label: 'v$version',
+                  );
+                },
+              ),
+            ],
+          );
+
+          if (!wide) {
+            return Column(
+              children: [
+                identity,
+                const SizedBox(height: 16),
+                details,
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(flex: 5, child: identity),
+              const SizedBox(width: 18),
+              Expanded(flex: 4, child: details),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 280),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusStrip extends StatelessWidget {
+  final VoidCallback onSync;
+  final VoidCallback onUpdates;
+
+  const _StatusStrip({
+    required this.onSync,
+    required this.onUpdates,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border:
+            Border.all(color: UAGroColors.azulMarino.withValues(alpha: 0.08)),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 10,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        alignment: WrapAlignment.spaceBetween,
+        children: [
+          const ConnectionIndicator(),
+          _CompactAction(
+            icon: Icons.sync,
+            label: 'Sincronizar',
+            onPressed: onSync,
+          ),
+          _CompactAction(
+            icon: Icons.system_update,
+            label: 'Actualizaciones',
+            onPressed: onUpdates,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  const _CompactAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 38),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        side: BorderSide(color: UAGroColors.azulMarino.withValues(alpha: 0.22)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _SectionHeader({
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: UAGroColors.azulMarino,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ObservatoryCard extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _ObservatoryCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      elevation: 1,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: UAGroColors.azulMarino.withValues(alpha: 0.12),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: UAGroColors.azulMarino.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.analytics_outlined,
+                  color: UAGroColors.azulMarino,
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Observatorio SASU',
+                      style: TextStyle(
+                        color: UAGroColors.azulMarino,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Indicadores y seguimiento institucional',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Icon(Icons.open_in_new,
+                  size: 20, color: UAGroColors.azulMarino),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyPermissionsPanel extends StatelessWidget {
+  const _EmptyPermissionsPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.orange[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange[300]!),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.info_outline, size: 42, color: Colors.orange[700]),
+          const SizedBox(height: 12),
+          Text(
+            'Sin Permisos Asignados',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.orange[900],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tu cuenta no tiene permisos para acceder a ninguna funcionalidad.\n'
+            'Contacta al administrador del sistema.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[700],
+            ),
+          ),
+        ],
       ),
     );
   }

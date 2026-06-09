@@ -2,8 +2,17 @@
 # Requiere: Personal Access Token con scope 'repo'
 
 param(
-    [string]$Token = $env:GITHUB_TOKEN
+    [string]$Token = $env:GITHUB_TOKEN,
+    [switch]$AllowLegacy,
+    [switch]$ConfirmProduction
 )
+
+# LEGACY SCRIPT - No usar para releases actuales. Usar version.json + tool/sync_version.ps1 + build_installer.ps1.
+if (-not $AllowLegacy -or -not $ConfirmProduction) {
+    Write-Error "Script legacy bloqueado: crea releases antiguas en GitHub y modifica scripts legacy."
+    Write-Host "Uso consciente: .\subir_release_github.ps1 -AllowLegacy -ConfirmProduction" -ForegroundColor Yellow
+    exit 1
+}
 
 $ErrorActionPreference = "Stop"
 
