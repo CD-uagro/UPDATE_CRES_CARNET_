@@ -142,6 +142,13 @@ class RecentActivityService {
       final items = await _getAllRecentNotes(user);
       final cleanNoteId =
           _fallback(noteId, 'local_${DateTime.now().toIso8601String()}');
+      RecentNoteActivity? previousItem;
+      for (final item in items) {
+        if (item.noteId.trim() == cleanNoteId) {
+          previousItem = item;
+          break;
+        }
+      }
 
       final updated = <RecentNoteActivity>[
         RecentNoteActivity(
@@ -151,7 +158,7 @@ class RecentActivityService {
           departamento: _fallback(departamento, 'Atención'),
           diagnosticoResumen: _fallback(diagnosticoResumen, 'Sin diagnóstico'),
           synced: synced,
-          occurredAt: DateTime.now(),
+          occurredAt: previousItem?.occurredAt ?? DateTime.now(),
         ),
         ...items.where((item) => item.noteId.trim() != cleanNoteId),
       ]..sort((a, b) => b.occurredAt.compareTo(a.occurredAt));

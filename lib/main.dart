@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'screens/dashboard_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -52,17 +53,32 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         if (child == null) return const SizedBox.shrink();
 
+        Widget app = Shortcuts(
+          shortcuts: const <ShortcutActivator, Intent>{
+            SingleActivator(LogicalKeyboardKey.backspace):
+                DeleteCharacterIntent(forward: false),
+            SingleActivator(LogicalKeyboardKey.backspace, shift: true):
+                DeleteCharacterIntent(forward: false),
+            SingleActivator(LogicalKeyboardKey.delete):
+                DeleteCharacterIntent(forward: true),
+            SingleActivator(LogicalKeyboardKey.delete, shift: true):
+                DeleteCharacterIntent(forward: true),
+          },
+          child: DefaultTextEditingShortcuts(child: child),
+        );
+
         // Si es móvil, aplicar tema adaptado
         if (MobileAdaptive.isMobilePlatform) {
-          return Theme(
-            data: AppThemeMobile.adaptiveTheme(context,
-                baseTheme: AppTheme.light),
-            child: child,
+          app = Theme(
+            data: AppThemeMobile.adaptiveTheme(
+              context,
+              baseTheme: AppTheme.light,
+            ),
+            child: app,
           );
         }
 
-        // En desktop, usar tema original sin cambios
-        return child;
+        return app;
       },
 
       // 🔐 DOBLE AUTENTICACIÓN:

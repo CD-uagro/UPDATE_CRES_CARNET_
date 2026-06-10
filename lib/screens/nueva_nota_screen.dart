@@ -1283,6 +1283,17 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
       );
 
       final rowId = await widget.db.insertNote(comp);
+      final recentNoteId = rowId.toString();
+      final diagnosticoReciente =
+          _diagnosisSummaryForRecentActivity(dx, cuerpoFinal);
+
+      await _recordRecentNoteActivity(
+        noteId: recentNoteId,
+        matricula: m,
+        departamento: dep,
+        diagnosticoResumen: diagnosticoReciente,
+        synced: false,
+      );
       print(
           '✅ [GUARDADO LOCAL] Nota insertada rowId=$rowId para matrícula=$m depto=$dep');
 
@@ -1313,13 +1324,15 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
         print('❌ [SINCRONIZACIÓN] Error al sincronizar nota $rowId: $e');
       }
 
-      await _recordRecentNoteActivity(
-        noteId: rowId.toString(),
-        matricula: m,
-        departamento: dep,
-        diagnosticoResumen: _diagnosisSummaryForRecentActivity(dx, cuerpoFinal),
-        synced: subioNube,
-      );
+      if (subioNube) {
+        await _recordRecentNoteActivity(
+          noteId: recentNoteId,
+          matricula: m,
+          departamento: dep,
+          diagnosticoResumen: diagnosticoReciente,
+          synced: true,
+        );
+      }
       await _recordRecentPatientActivity(
         matricula: m,
         accion: 'attended',
@@ -3272,7 +3285,7 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
                         border: Border.all(color: Colors.white24),
                       ),
                       child: const Text(
-                        'v2.5.0',
+                        'v2.5.1',
                         style: TextStyle(color: Colors.white70, fontSize: 11),
                       ),
                     ),

@@ -1,25 +1,22 @@
 {
-  "version": "2.5.0",
-  "buildNumber": 37,
-  "releaseDate": "2026-06-08",
-  "channel": "internal",
+  "version": "2.5.1",
+  "buildNumber": 38,
+  "releaseDate": "2026-06-10",
+  "channel": "stable",
   "minimumVersion": "2.0.0",
   "artifact": {
     "type": "exe",
-    "fileName": "CRES_Carnets_Setup_v2.5.0.exe",
-    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.5.0/CRES_Carnets_Setup_v2.5.0.exe",
-    "sha256": "4C2ED0E818DC6874220DBA096945366363B2FD9106703FB8B7DB6BCB39F3A341",
-    "fileSize": 13916189
+    "fileName": "CRES_Carnets_Setup_v2.5.1.exe",
+    "downloadUrl": "https://github.com/edukshare-max/UPDATE_CRES_CARNET_/releases/download/v2.5.1/CRES_Carnets_Setup_v2.5.1.exe",
+    "sha256": "695E86B10714DA0776625E01B3F4F45AFFDDA1D442F67D93AC99CF4C6DEEFB6D",
+    "fileSize": 13925133
   },
   "changelog": [
-    "Nuevo diseno institucional.",
-    "Expedientes modernizados.",
-    "Busqueda por nombre.",
-    "Filtro escuela/grupo.",
-    "Psicologia individual, grupal y colectiva.",
-    "Adjuntos persistentes locales.",
-    "Promocion de Salud redisenada.",
-    "Vacunacion redisenada.",
-    "Mejoras de estabilidad y actualizacion automatica."
+    "Actividad reciente por usuario.",
+    "Ultimos 5 pacientes atendidos.",
+    "Ultimas 5 notas realizadas.",
+    "Acceso rapido a expedientes recientes.",
+    "Correccion de captura de teclado (Backspace/Delete).",
+    "Mejoras de estabilidad y productividad clinica."
   ]
 }
