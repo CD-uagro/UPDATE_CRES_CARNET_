@@ -18,6 +18,8 @@ import 'cita_form_screen.dart';
 
 import '../data/db.dart' as DB;
 import '../data/api_service.dart';
+import '../data/auth_service.dart';
+import '../data/recent_activity_service.dart';
 
 import 'dashboard_screen.dart';
 import 'form_screen.dart';
@@ -387,6 +389,19 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
         _error = carnetError;
       }
     });
+
+    final hasActivityTarget = _expedienteLocal != null ||
+        expedienteCloud != null ||
+        _notasLocal.isNotEmpty ||
+        _notasCloud.isNotEmpty;
+    if (hasActivityTarget) {
+      await _recordRecentPatientActivity(
+        matricula: searchText,
+        accion: 'opened',
+        localRecord: _expedienteLocal,
+        cloudRecord: expedienteCloud,
+      );
+    }
   }
 
   Future<void> _buscarEstudiantesPorNombre(String nombre) async {
@@ -564,6 +579,110 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
 
   Future<void> _onStudentResultSelected(_StudentSearchResult result) async {
     await _cargarExpedientePorMatricula(result.matricula);
+  }
+
+  Future<void> _recordRecentPatientActivity({
+    required String matricula,
+    required String accion,
+    DB.HealthRecord? localRecord,
+    Map<String, dynamic>? cloudRecord,
+  }) async {
+    try {
+      final user = await AuthService.getCurrentUser();
+      if (user == null) return;
+
+      final local = localRecord ?? _expedienteLocal;
+      final cloud = cloudRecord ?? _expedienteCloud;
+      final nombre = (local?.nombreCompleto ??
+              cloud?['nombreCompleto'] ??
+              cloud?['nombre'] ??
+              '')
+          .toString();
+      final area = user.departamento.trim().isNotEmpty
+          ? user.departamento
+          : AuthService.formatRoleName(user.rol);
+
+      await RecentActivityService.recordPatientActivity(
+        user: user,
+        matricula: matricula,
+        nombreCompleto: nombre,
+        areaResponsable: area,
+        accion: accion,
+      );
+    } catch (e, st) {
+      debugPrint('No se pudo registrar paciente reciente: $e\n$st');
+    }
+  }
+
+  Future<void> _recordRecentNoteActivity({
+    required String noteId,
+    required String matricula,
+    required String departamento,
+    required String diagnosticoResumen,
+    required bool synced,
+  }) async {
+    try {
+      final user = await AuthService.getCurrentUser();
+      if (user == null) return;
+
+      await RecentActivityService.recordNoteActivity(
+        user: user,
+        noteId: noteId,
+        matricula: matricula,
+        nombreEstudiante: await _studentNameForRecentActivity(matricula),
+        departamento: departamento,
+        diagnosticoResumen: diagnosticoResumen,
+        synced: synced,
+      );
+    } catch (e, st) {
+      debugPrint('No se pudo registrar nota reciente: $e\n$st');
+    }
+  }
+
+  Future<String> _studentNameForRecentActivity(String matricula) async {
+    final localName = _expedienteLocal?.nombreCompleto.trim() ?? '';
+    if (localName.isNotEmpty) return localName;
+
+    final cloudName = (_expedienteCloud?['nombreCompleto'] ??
+            _expedienteCloud?['nombre'] ??
+            '')
+        .toString()
+        .trim();
+    if (cloudName.isNotEmpty) return cloudName;
+
+    try {
+      final record = await widget.db.getRecordByMatricula(matricula);
+      final name = record?.nombreCompleto.trim() ?? '';
+      if (name.isNotEmpty) return name;
+    } catch (e) {
+      debugPrint('No se pudo resolver nombre para actividad reciente: $e');
+    }
+
+    return 'Sin nombre';
+  }
+
+  String _diagnosisSummaryForRecentActivity(String diagnosis, String body) {
+    final cleanDiagnosis = diagnosis.trim();
+    if (cleanDiagnosis.isNotEmpty) return _shortText(cleanDiagnosis);
+
+    for (final rawLine in body.split('\n')) {
+      final line = rawLine.trim();
+      if (line.isEmpty) continue;
+      if (line.toLowerCase().startsWith('diagnóstico:')) {
+        return _shortText(line.substring('diagnóstico:'.length).trim());
+      }
+      if (!line.toLowerCase().startsWith('consulta:')) {
+        return _shortText(line);
+      }
+    }
+
+    return 'Sin diagnóstico';
+  }
+
+  String _shortText(String value, {int maxLength = 90}) {
+    final clean = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (clean.length <= maxLength) return clean;
+    return '${clean.substring(0, maxLength - 1)}…';
   }
 
   String _normalizeLookup(String value) {
@@ -1193,6 +1312,18 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
         errorNube = e.toString();
         print('❌ [SINCRONIZACIÓN] Error al sincronizar nota $rowId: $e');
       }
+
+      await _recordRecentNoteActivity(
+        noteId: rowId.toString(),
+        matricula: m,
+        departamento: dep,
+        diagnosticoResumen: _diagnosisSummaryForRecentActivity(dx, cuerpoFinal),
+        synced: subioNube,
+      );
+      await _recordRecentPatientActivity(
+        matricula: m,
+        accion: 'attended',
+      );
 
       // ========== PASO 5: CERRAR INDICADOR Y MOSTRAR RESULTADO ==========
       if (!mounted) return;

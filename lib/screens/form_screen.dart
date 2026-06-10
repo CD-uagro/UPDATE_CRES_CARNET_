@@ -2,6 +2,8 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show Value, OrderingTerm, OrderingMode;
 import '../data/db.dart';
+import '../data/auth_service.dart';
+import '../data/recent_activity_service.dart';
 import '../data/sync_service.dart';
 import '../data/cache_service.dart'; // Para invalidar caché después de guardar
 // QUITA: import '../data/cloudant_query.dart';
@@ -634,6 +636,27 @@ class _FormScreenState extends State<FormScreen> {
     }
 
     return recordId;
+  }
+
+  Future<void> _recordRecentCarnetActivity(String accion) async {
+    try {
+      final user = await AuthService.getCurrentUser();
+      if (user == null) return;
+
+      final area = user.departamento.trim().isNotEmpty
+          ? user.departamento
+          : AuthService.formatRoleName(user.rol);
+
+      await RecentActivityService.recordPatientActivity(
+        user: user,
+        matricula: _ctrl['matricula']?.text.trim() ?? '',
+        nombreCompleto: _ctrl['nombre']?.text.trim() ?? '',
+        areaResponsable: area,
+        accion: accion,
+      );
+    } catch (e, st) {
+      debugPrint('No se pudo registrar actividad reciente de carnet: $e\n$st');
+    }
   }
 
   // ---------- LIMPIAR: ahora SIEMPRE borra TODO Y DESBLOQUEA MATRÍCULA ----------
@@ -2346,6 +2369,13 @@ class _FormScreenState extends State<FormScreen> {
         }
       }
 
+      final existingLocalRecord = await _getRecordByMatricula(matriculaTxt);
+      final activityAction = widget.carnetExistente != null ||
+              existingLocalRecord != null ||
+              _lockMatricula
+          ? 'modified'
+          : 'created';
+
       final comp = HealthRecordsCompanion.insert(
         timestamp: Value(DateTime.now()),
         matricula: _ctrl['matricula']!.text,
@@ -2378,6 +2408,7 @@ class _FormScreenState extends State<FormScreen> {
       );
 
       await _upsertRecord(comp);
+      await _recordRecentCarnetActivity(activityAction);
 
       if (!mounted) return;
 

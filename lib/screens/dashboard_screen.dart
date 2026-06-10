@@ -9,6 +9,7 @@ import 'package:cres_carnets_ibmcloud/screens/database_cleaner_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/pending_sync_screen.dart';
 import 'package:cres_carnets_ibmcloud/ui/uagro_theme.dart';
 import 'package:cres_carnets_ibmcloud/ui/connection_indicator.dart';
+import 'package:cres_carnets_ibmcloud/ui/widgets/recent_activity_panel.dart';
 import 'package:cres_carnets_ibmcloud/ui/mobile_adaptive.dart'; // Para detectar móvil
 import 'package:cres_carnets_ibmcloud/data/db.dart' as app_db;
 import 'package:cres_carnets_ibmcloud/data/auth_service.dart';
@@ -592,6 +593,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       }
                     },
                   ),
+                  if (_currentUser != null) ...[
+                    const SizedBox(height: 18),
+                    RecentActivityPanel(
+                      user: _currentUser!,
+                      onOpenPatient: (matricula) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => NuevaNotaScreen(
+                              db: widget.db,
+                              matriculaInicial: matricula,
+                            ),
+                          ),
+                        );
+                      },
+                      onOpenNote: (matricula) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => NuevaNotaScreen(
+                              db: widget.db,
+                              matriculaInicial: matricula,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                   const SizedBox(height: 18),
                   _SectionHeader(
                     title: 'Centro de Servicios Universitarios',

@@ -1,0 +1,1342 @@
+DOCUMENTACION TECNICA INSTITUCIONAL SASU v1.0
+Sistema SASU / Carnets UAGro Pro
+
+Documento maestro para Manual Institucional, continuidad operativa,
+recuperacion, diccionario de datos y anexos tecnicos.
+
+Fecha de elaboracion: 2026-06-07
+Modo de elaboracion: auditoria documental basada en revision de proyecto.
+Nota: Este documento no contiene contrasenas ni valores secretos.
+
+============================================================
+INDICE
+============================================================
+
+1. Resumen ejecutivo
+2. Arquitectura general
+3. Organigrama SASU propuesto
+4. Diagramas textuales
+5. Inventario de pantallas
+6. Inventario de modulos y archivos criticos
+7. Inventario de APIs
+8. Inventario de servicios externos
+9. Base de datos local SQLite
+10. Diccionario de datos oficial
+11. Sincronizacion offline-first
+12. Seguridad, roles y permisos
+13. Variables de entorno requeridas
+14. Dependencias Flutter
+15. Dependencias Python
+16. Scripts del proyecto
+17. Plan de continuidad operativa
+18. SASU Recovery Kit
+19. Procedimientos Normalizados de Operacion
+20. Matriz RACI
+21. Politica de respaldo institucional
+22. Politica de proteccion de datos
+23. Manual del Observatorio de Salud Universitaria
+24. Prueba de recuperacion completa
+25. Riesgos tecnicos
+26. Recomendaciones SASU 2.0 y SASU 3.0
+27. Historial de versiones del manual
+28. Glosario tecnico y operativo
+
+============================================================
+1. RESUMEN EJECUTIVO
+============================================================
+
+SASU / Carnets UAGro Pro es un sistema de atencion en salud
+universitaria construido con una arquitectura offline-first. La aplicacion
+principal esta desarrollada en Flutter y utiliza una base local SQLite
+llamada cres_carnets.sqlite. La base local permite operar aun cuando no
+exista conexion a internet o cuando el backend no este disponible.
+
+El sistema sincroniza informacion con un backend FastAPI desplegado en
+Render. El backend guarda informacion en Azure Cosmos DB. GitHub y GitHub
+Releases se utilizan como repositorio, historico de versiones, canal de
+distribucion y soporte para actualizaciones.
+
+La principal fortaleza del sistema es que puede seguir capturando datos
+localmente. El principal riesgo operativo es perder la base
+cres_carnets.sqlite antes de sincronizar datos pendientes. Todo dato con
+synced=false debe considerarse dato en riesgo hasta que sea confirmado en
+la nube.
+
+El blindaje institucional debe concentrarse en:
+
+- Respaldos diarios de cres_carnets.sqlite.
+- Respaldos semanales del proyecto completo.
+- Custodia segura de credenciales y variables de entorno.
+- Documentacion de Render, Azure Cosmos DB y GitHub.
+- Prueba periodica de recuperacion.
+- Separacion y control de scripts peligrosos.
+- Definicion institucional de responsables.
+
+============================================================
+2. ARQUITECTURA GENERAL
+============================================================
+
+Arquitectura resumida:
+
+Usuario SASU
+  -> App Flutter
+    -> SQLite local: cres_carnets.sqlite
+    -> ApiService / AuthService / SyncService
+      -> Backend FastAPI en Render
+        -> Azure Cosmos DB
+          -> Contenedores: carnets, notas, citas_id, tarjeta_vacunacion,
+             promociones_salud, usuarios, auditoria
+
+Componentes principales:
+
+1. Flutter
+   Aplicacion de escritorio/movil. Contiene pantallas de login,
+   dashboard, carnets, notas, citas, vacunacion, promocion de salud,
+   diagnostico, limpieza y reportes.
+
+2. SQLite local
+   Base de datos local ubicada normalmente en:
+   C:\Users\[Usuario]\Documents\cres_carnets.sqlite
+
+3. FastAPI
+   Backend Python ubicado en temp_backend. Expone endpoints de auth,
+   carnets, notas, citas, vacunacion, promociones, auditoria y updates.
+
+4. Render
+   Plataforma donde se despliega el backend FastAPI.
+
+5. Azure Cosmos DB
+   Base remota donde se almacenan los datos sincronizados.
+
+6. GitHub
+   Repositorio de codigo, workflows y releases.
+
+7. GitHub Releases
+   Canal para distribucion de instaladores y actualizaciones.
+
+============================================================
+3. ORGANIGRAMA SASU PROPUESTO
+============================================================
+
+Organigrama textual:
+
+Rectoria UAGro
+└── Direccion de Innovacion en Salud
+    ├── Administrador Institucional SASU
+    │   ├── Responsables de Servicios de Salud
+    │   │   ├── Medicina
+    │   │   ├── Psicologia
+    │   │   ├── Odontologia
+    │   │   ├── Enfermeria
+    │   │   ├── Nutricion
+    │   │   └── Servicios Estudiantiles
+    │   └── Observatorio de Salud Universitaria
+    ├── Administrador Azure / Base de Datos
+    ├── Administrador Render / Backend
+    └── Administrador GitHub / Versiones
+
+Funciones:
+
+Rectoria:
+Define lineamientos institucionales, autoriza politicas, valida uso de
+datos y respalda la continuidad operativa.
+
+Direccion de Innovacion en Salud:
+Coordina el sistema, aprueba prioridades y supervisa indicadores.
+
+Administrador Institucional SASU:
+Gestiona usuarios, permisos, respaldos, incidentes y operacion diaria.
+
+Administrador Azure:
+Administra Azure Cosmos DB, contenedores, claves, accesos y disponibilidad.
+
+Administrador Render:
+Administra despliegue del backend, variables de entorno y estado de API.
+
+Administrador GitHub:
+Administra repositorio, releases, workflows e historial de versiones.
+
+Responsables de servicios:
+Validan captura clinica y calidad de datos por area.
+
+Observatorio de Salud Universitaria:
+Analiza datos agregados, genera reportes y apoya toma de decisiones.
+
+============================================================
+4. DIAGRAMAS TEXTUALES
+============================================================
+
+4.1 Arquitectura general
+
+Usuario
+  -> Flutter
+    -> SQLite local
+    -> HTTP API
+      -> FastAPI / Render
+        -> Azure Cosmos DB
+
+4.2 Flujo offline-first
+
+Usuario captura dato
+  -> App valida campos
+  -> Guarda en SQLite
+  -> Registro inicia con synced=false
+  -> Si hay conexion, intenta sincronizar
+  -> Si la nube confirma, synced=true
+  -> Si falla, permanece pendiente
+
+4.3 Flujo de sincronizacion
+
+SyncService revisa pendientes
+  -> HealthRecords / Notes / Citas / VacunacionesPendientes
+  -> ApiService envia a FastAPI
+  -> FastAPI guarda en Cosmos DB
+  -> Respuesta exitosa
+  -> SQLite marca synced=true
+
+4.4 Flujo de recuperacion
+
+Falla o perdida
+  -> Activar Recovery Kit
+  -> Restaurar proyecto/release
+  -> Restaurar SQLite
+  -> Verificar Render
+  -> Verificar Azure Cosmos DB
+  -> Verificar GitHub
+  -> Probar login
+  -> Probar captura
+  -> Probar sincronizacion
+  -> Reanudar operacion
+
+4.5 Flujo de respaldo
+
+Cierre operativo
+  -> Verificar pendientes
+  -> Cerrar app
+  -> Copiar cres_carnets.sqlite
+  -> Guardar copia fechada
+  -> Respaldar proyecto/release
+  -> Registrar evidencia
+
+============================================================
+5. INVENTARIO DE PANTALLAS
+============================================================
+
+Pantalla: Login
+Archivo: lib/screens/auth/login_screen.dart
+Funcion: Inicio de sesion online/offline por usuario y campus.
+APIs: /auth/login mediante AuthService.login.
+Tablas: Ninguna directa.
+
+Pantalla: Dashboard
+Archivo: lib/screens/dashboard_screen.dart
+Funcion: Menu principal, permisos, sincronizacion y navegacion.
+APIs: AuthService, SyncService.
+Tablas: Todas por medio de SyncService.
+
+Pantalla: AuthGate
+Archivo: lib/screens/auth_gate.dart
+Funcion: Bloqueo local por PIN. El flujo principal lo tiene deshabilitado
+temporalmente.
+
+Pantalla: FormScreen
+Archivo: lib/screens/form_screen.dart
+Funcion: Alta y edicion de carnet/expediente base.
+APIs: /carnet, /carnet/{id}, /carnet/{matricula}.
+Tablas: HealthRecords.
+
+Pantalla: ListScreen
+Archivo: lib/screens/list_screen.dart
+Funcion: Listado local de expedientes.
+Tablas: HealthRecords.
+
+Pantalla: NuevaNotaScreen
+Archivo: lib/screens/nueva_nota_screen.dart
+Funcion: Expediente, notas, adjuntos, citas y PDF.
+APIs: /carnet, /notas, /citas.
+Tablas: HealthRecords, Notes.
+
+Pantalla: CitaFormScreen
+Archivo: lib/screens/cita_form_screen.dart
+Funcion: Creacion de cita.
+APIs: POST /citas.
+Tablas: No se identifico insercion local directa desde esta pantalla.
+
+Pantalla: PendingSyncScreen
+Archivo: lib/screens/pending_sync_screen.dart
+Funcion: Ver y sincronizar registros pendientes.
+Tablas: HealthRecords, Notes, Citas, VacunacionesPendientes.
+
+Pantalla: DatabaseCleanerScreen
+Archivo: lib/screens/database_cleaner_screen.dart
+Funcion: Limpieza local de notas/carnets sincronizados.
+Riesgo: Puede eliminar informacion local ya sincronizada.
+
+Pantalla: SyncDiagnosticScreen
+Archivo: lib/screens/sync_diagnostic_screen.dart
+Funcion: Diagnostico de token, API y sincronizacion.
+
+Pantalla: VaccinationScreen
+Archivo: lib/screens/vaccination_screen.dart
+Funcion: Registro de vacunacion y reporte PDF.
+APIs: /carnet/{matricula}/vacunacion.
+Tablas: VacunacionesPendientes.
+
+Pantalla: PromocionSaludScreen
+Archivo: lib/screens/promocion_salud_screen.dart
+Funcion: Contenedor del modulo de promocion de salud.
+
+Widget: PromocionSaludSection
+Archivo: lib/ui/widgets/promocion_salud_section.dart
+Funcion: Crear promociones y validar supervisor.
+APIs: /promociones-salud, /promociones-salud/validate-supervisor.
+
+Pantalla: AboutScreen
+Archivo: lib/screens/about_screen.dart
+Funcion: Informacion de app y version.
+
+Pantalla: OdontogramScreen
+Archivo: lib/screens/odontology/odontogram_screen.dart
+Funcion: Odontograma y PDF.
+
+Pantallas de Psicologia
+Archivos:
+- lib/screens/psychology/test_selection_screen.dart
+- lib/screens/psychology/test_application_screen.dart
+- lib/screens/psychology/test_results_screen.dart
+Funcion: Seleccion, aplicacion y resultados de pruebas psicologicas.
+
+============================================================
+6. INVENTARIO DE MODULOS Y ARCHIVOS CRITICOS
+============================================================
+
+Modulos:
+
+lib/data
+- db.dart: Esquema SQLite, migraciones y ubicacion fisica de la DB.
+- db.g.dart: Codigo generado por Drift.
+- api_service.dart: Cliente HTTP hacia FastAPI.
+- auth_service.dart: Login, JWT, permisos y modo offline.
+- sync_service.dart: Sincronizacion general.
+- offline_manager.dart: Cache y modo offline.
+- cache_service.dart: Cache auxiliar.
+- sync_vacunaciones.dart: Sincronizacion de vacunaciones pendientes.
+
+lib/screens
+- Pantallas operativas de la aplicacion.
+
+lib/services
+- update_service.dart: Consulta de actualizaciones.
+- update_manager.dart: Dialogos y flujo de actualizacion.
+- update_downloader.dart: Descarga/instalacion.
+- version_service.dart: Version desde assets/version.json.
+- auto_sync_service.dart: Sincronizacion automatica.
+
+temp_backend
+- main.py: API FastAPI principal.
+- cosmos_helper.py: Conexion a Azure Cosmos DB.
+- auth_service.py: JWT backend.
+- auth_models.py: Usuarios, roles, permisos y auditoria.
+- update_routes.py: Endpoints de actualizacion.
+- requirements.txt: Dependencias Python.
+
+Archivos de configuracion:
+- pubspec.yaml
+- pubspec.lock
+- render.yaml
+- temp_backend/render.yaml
+- .github/workflows/render-redeploy.yml
+- assets/version.json
+
+Archivos sensibles:
+- temp_backend/.env
+- cres_pwd.json
+- temp_backend/cres_pwd.json
+- temp_backend/CREDENCIALES_ADMIN.md
+
+============================================================
+7. INVENTARIO DE APIS
+============================================================
+
+Auth:
+- POST /auth/login
+- GET /auth/me
+- POST /auth/init-admin
+- POST /auth/register
+- GET /auth/users
+- PATCH /auth/users/{user_id}
+- GET /auth/audit-logs
+
+Carnets:
+- GET /carnet/{id}
+- GET /carnet/search
+- POST /carnet
+- PUT /carnet/{carnet_id}
+- GET /expediente/{id}
+- GET /expediente/matricula/{matricula}
+
+Notas:
+- GET /notas/{matricula}
+- POST /notas
+
+Citas:
+- POST /citas
+- GET /citas/{cita_id}
+- GET /citas/por-matricula/{matricula}
+
+Promocion de salud:
+- POST /promociones-salud
+- GET /promociones-salud
+- POST /promociones-salud/validate-supervisor
+
+Vacunacion:
+- POST /carnet/{matricula}/vacunacion
+- GET /carnet/{matricula}/vacunacion
+- GET /vacunacion/estadisticas
+
+Updates:
+- POST /updates/check
+- GET /updates/latest
+- GET /updates/changelog
+- POST /updates/publish
+- GET /updates/health
+
+Diagnostico:
+- GET /health
+- GET /_diag/citas
+
+============================================================
+8. INVENTARIO DE SERVICIOS EXTERNOS
+============================================================
+
+Render:
+Funcion: Hosting del backend FastAPI.
+Servicio identificado: fastapi-backend-o7ks.
+URL base: https://fastapi-backend-o7ks.onrender.com
+
+Azure Cosmos DB:
+Funcion: Base remota.
+Base detectada en documentacion/configuracion: SASU.
+Contenedores esperados:
+- carnets
+- notas
+- citas_id
+- tarjeta_vacunacion o Tarjeta_vacunacion
+- promociones_salud
+- usuarios
+- auditoria
+
+GitHub:
+Funcion: Repositorio, versionado, workflows.
+
+GitHub Releases:
+Funcion: Distribucion de instaladores y actualizaciones.
+
+GitHub Actions:
+Funcion: Redeploy manual hacia Render usando RENDER_DEPLOY_HOOK.
+
+============================================================
+9. BASE DE DATOS LOCAL SQLITE
+============================================================
+
+Archivo:
+cres_carnets.sqlite
+
+Ruta esperada en Windows:
+C:\Users\[Usuario]\Documents\cres_carnets.sqlite
+
+Definicion:
+lib/data/db.dart
+
+Tablas:
+- HealthRecords
+- Notes
+- Citas
+- VacunacionesPendientes
+
+Version de esquema:
+5
+
+Estrategia:
+La app guarda primero localmente y despues sincroniza a FastAPI/Cosmos.
+El campo synced controla si un registro esta pendiente o sincronizado.
+
+============================================================
+10. DICCIONARIO DE DATOS OFICIAL
+============================================================
+
+10.1 HealthRecords
+
+Descripcion:
+Tabla principal de carnet/expediente local del estudiante.
+
+Clave primaria:
+id
+
+Clave operativa:
+matricula
+
+Clave de sincronizacion:
+synced
+
+Campos:
+
+id
+Tipo: Int autoincrement
+Obligatorio: Si
+Descripcion: Identificador local.
+Uso operativo: Control interno.
+Uso estadistico: No.
+Uso observatorio: No.
+Sensibilidad: Baja.
+
+timestamp
+Tipo: DateTime nullable
+Obligatorio: No
+Descripcion: Fecha/hora de captura.
+Uso operativo: Trazabilidad.
+Uso estadistico: Cortes temporales.
+Uso observatorio: Evolucion de registros.
+
+matricula
+Tipo: Text
+Obligatorio: Si
+Descripcion: Identificador institucional del estudiante.
+Uso operativo: Busqueda y relacion logica.
+Uso estadistico: Conteo unico.
+Uso observatorio: Identificador base.
+Sensibilidad: Alta.
+
+nombreCompleto
+Tipo: Text
+Obligatorio: Si
+Descripcion: Nombre completo.
+Uso operativo: Identificacion.
+Uso estadistico: No recomendado.
+Uso observatorio: Solo referencia autorizada.
+Sensibilidad: Alta.
+
+correo
+Tipo: Text
+Obligatorio: Si
+Descripcion: Correo del estudiante.
+Uso operativo: Contacto.
+Uso estadistico: No.
+Uso observatorio: No.
+Sensibilidad: Alta.
+
+edad
+Tipo: Int nullable
+Obligatorio: No
+Uso operativo: Contexto clinico.
+Uso estadistico: Grupos etarios.
+Uso observatorio: Indicadores por edad.
+
+sexo
+Tipo: Text nullable
+Obligatorio: No
+Uso operativo: Contexto clinico.
+Uso estadistico: Distribucion.
+Uso observatorio: Indicadores por sexo.
+
+categoria
+Tipo: Text nullable
+Obligatorio: No
+Uso operativo: Clasificacion.
+Uso estadistico: Segmentacion.
+Uso observatorio: Indicadores por categoria.
+
+programa
+Tipo: Text nullable
+Obligatorio: No
+Uso operativo: Programa academico.
+Uso estadistico: Conteo por programa.
+Uso observatorio: Indicadores por programa.
+
+discapacidad
+Tipo: Text nullable
+Obligatorio: No
+Uso operativo: Atencion prioritaria.
+Uso estadistico: Prevalencia.
+Uso observatorio: Inclusion y riesgo.
+Sensibilidad: Alta.
+
+tipoDiscapacidad
+Tipo: Text nullable
+Obligatorio: No
+Sensibilidad: Alta.
+
+alergias
+Tipo: Text nullable
+Obligatorio: No
+Uso operativo: Alerta clinica.
+Uso estadistico: Prevalencia.
+Uso observatorio: Riesgo sanitario.
+Sensibilidad: Alta.
+
+tipoSangre
+Tipo: Text nullable
+Obligatorio: No
+Uso operativo: Emergencias.
+Uso estadistico: Distribucion.
+Uso observatorio: Indicador clinico.
+
+enfermedadCronica
+Tipo: Text nullable
+Obligatorio: No
+Uso operativo: Seguimiento clinico.
+Uso estadistico: Prevalencia.
+Uso observatorio: Riesgo poblacional.
+Sensibilidad: Alta.
+
+unidadMedica
+Tipo: Text nullable
+Obligatorio: No
+Uso operativo: Referencia medica.
+Uso estadistico: Cobertura.
+Uso observatorio: Atencion institucional.
+
+numeroAfiliacion
+Tipo: Text nullable
+Obligatorio: No
+Sensibilidad: Alta.
+
+usoSeguroUniversitario
+Tipo: Text nullable
+Obligatorio: No
+Uso estadistico: Cobertura y uso de servicios.
+
+donante
+Tipo: Text nullable
+Obligatorio: No
+Uso estadistico: Conteo institucional.
+
+emergenciaTelefono
+Tipo: Text nullable
+Obligatorio: No
+Sensibilidad: Alta.
+
+emergenciaContacto
+Tipo: Text nullable
+Obligatorio: No
+Sensibilidad: Alta.
+
+expedienteNotas
+Tipo: Text nullable
+Obligatorio: No
+Sensibilidad: Alta.
+
+expedienteAdjuntos
+Tipo: Text nullable
+Obligatorio: No
+Sensibilidad: Alta.
+
+synced
+Tipo: Bool
+Obligatorio: Si
+Descripcion: Estado de sincronizacion.
+Uso operativo: Identificar pendientes.
+Uso estadistico: Calidad de datos.
+Uso observatorio: Pendientes institucionales.
+
+10.2 Notes
+
+Descripcion:
+Notas clinicas, psicologicas, odontologicas o administrativas.
+
+Campos:
+- id: Int autoincrement. PK local.
+- matricula: Text. Relacion logica con HealthRecords.
+- departamento: Text. Area que genera la nota.
+- tratante: Text nullable. Profesional responsable.
+- cuerpo: Text. Contenido de la nota.
+- createdAt: DateTime nullable. Fecha de captura.
+- synced: Bool. Estado de sincronizacion.
+
+Campos sensibles:
+matricula, tratante, cuerpo.
+
+10.3 Citas
+
+Descripcion:
+Agenda de citas asociadas a matricula.
+
+Campos:
+- id: Int autoincrement.
+- matricula: Text.
+- inicio: DateTime.
+- fin: DateTime.
+- motivo: Text.
+- departamento: Text nullable.
+- estado: Text default programada.
+- googleEventId: Text nullable.
+- htmlLink: Text nullable.
+- createdAt: DateTime nullable.
+- synced: Bool.
+
+Campos sensibles:
+matricula, motivo, enlaces de calendario.
+
+10.4 VacunacionesPendientes
+
+Descripcion:
+Vacunaciones guardadas localmente cuando no se logro sincronizar.
+
+Campos:
+- id: Int autoincrement.
+- matricula: Text.
+- nombreEstudiante: Text nullable.
+- campana: Text.
+- vacuna: Text.
+- dosis: Int.
+- lote: Text nullable.
+- aplicadoPor: Text nullable.
+- fechaAplicacion: Text.
+- observaciones: Text nullable.
+- createdAt: DateTime.
+- synced: Bool.
+
+Campos sensibles:
+matricula, nombreEstudiante, vacuna, lote, aplicadoPor, observaciones.
+
+Relaciones:
+HealthRecords.matricula
+  -> Notes.matricula
+  -> Citas.matricula
+  -> VacunacionesPendientes.matricula
+
+No se identificaron llaves foraneas formales en Drift; la relacion es
+logica por matricula.
+
+============================================================
+11. SINCRONIZACION OFFLINE-FIRST
+============================================================
+
+Reglas:
+
+- synced=false: Registro pendiente local, aun no confirmado por nube.
+- synced=true: Registro ya sincronizado exitosamente.
+
+Funciones principales:
+
+- SyncService.syncAll()
+- SyncService.syncRecord()
+- SyncService.syncNote()
+- ApiService.pushSingleCarnet()
+- ApiService.pushSingleNote()
+- ApiService.createCita()
+- ApiService.createVacunacion()
+- syncVacunacionesPendientes()
+
+Pantallas para pendientes:
+- PendingSyncScreen
+- Dashboard
+- DatabaseCleanerScreen (con precaucion)
+
+Riesgo:
+Si se pierde cres_carnets.sqlite antes de sincronizar, los registros con
+synced=false pueden perderse definitivamente.
+
+============================================================
+12. SEGURIDAD, ROLES Y PERMISOS
+============================================================
+
+JWT:
+El backend usa tokens JWT con algoritmo HS256 y expiracion aproximada de
+8 horas. Flutter guarda el token en FlutterSecureStorage.
+
+Elementos guardados localmente:
+- auth_token
+- auth_user
+- cached_password
+- hashes/cache offline
+
+Roles detectados:
+- admin
+- medico
+- nutricion
+- psicologia
+- odontologia
+- enfermeria
+- recepcion
+- servicios_estudiantiles
+- lectura
+
+Riesgos de seguridad:
+- cached_password en almacenamiento local seguro.
+- AuthGate/PIN deshabilitado temporalmente.
+- Archivos sensibles dentro del arbol del proyecto.
+- Diferencias entre permisos frontend y backend.
+- Variables de entorno inconsistentes COSMOS_URL / COSMOS_ENDPOINT.
+
+============================================================
+13. VARIABLES DE ENTORNO REQUERIDAS
+============================================================
+
+No se incluyen valores.
+
+- COSMOS_URL
+- COSMOS_ENDPOINT
+- COSMOS_KEY
+- COSMOS_DB
+- COSMOS_CONTAINER_CARNETS
+- COSMOS_CONTAINER_NOTAS
+- COSMOS_CONTAINER_CITAS
+- COSMOS_PK_CITAS
+- COSMOS_CONTAINER_VACUNACION
+- COSMOS_CONTAINER_PROMOCIONES_SALUD
+- COSMOS_CONTAINER_USUARIOS
+- COSMOS_CONTAINER_AUDITORIA
+- JWT_SECRET_KEY
+- RENDER_DEPLOY_HOOK
+- API_BASE_URL
+- DEBUG_CITAS
+
+============================================================
+14. DEPENDENCIAS FLUTTER
+============================================================
+
+- flutter: SDK
+- cupertino_icons: ^1.0.6
+- drift: ^2.28.2
+- sqlite3_flutter_libs: ^0.5.24
+- path_provider: ^2.1.3
+- path: ^1.9.0
+- http: ^1.2.2
+- dio: ^5.4.0
+- intl: ^0.19.0
+- flutter_secure_storage: ^9.2.4
+- cryptography: ^2.7.0
+- mime: ^1.0.5
+- url_launcher: ^6.3.0
+- crypto: ^3.0.3
+- shared_preferences: ^2.3.3
+- connectivity_plus: ^6.0.5
+- file_picker: ^8.0.0
+- open_filex: ^4.4.0
+- pdf: ^3.11.0
+- printing: ^5.13.4
+- archive: ^3.6.1
+- uuid: ^4.5.1
+- fl_chart: ^0.69.0
+- flutter_test: SDK
+- build_runner: ^2.4.9
+- drift_dev: ^2.28.3
+- flutter_lints: ^6.0.0
+
+============================================================
+15. DEPENDENCIAS PYTHON
+============================================================
+
+- fastapi
+- gunicorn
+- uvicorn
+- azure-cosmos
+- python-dotenv
+- google-api-python-client
+- google-auth
+- python-jose[cryptography]
+- passlib[bcrypt]
+- bcrypt==4.0.1
+- python-multipart
+- email-validator
+
+============================================================
+16. SCRIPTS DEL PROYECTO
+============================================================
+
+Scripts de respaldo/diagnostico:
+- abrir_datos_locales.ps1
+- eliminar_base_datos_seguro.ps1
+- diagnostico_notas.ps1
+- capturar_logs_diagnostico.ps1
+- verificar_campo_synced.ps1
+- verificar_logica_offline.ps1
+
+Scripts de despliegue/build/publicacion:
+- deploy.ps1
+- force_render_deploy.ps1
+- build_android_release.ps1
+- build_windows_release.ps1
+- build_installer.ps1
+- publicar_v2.4.32.ps1
+- publicar_v2.4.33.ps1
+- publicar_fix_v2.4.34.ps1
+- subir_release_github.ps1
+- update_version.ps1
+- upload_update.ps1
+- publish_update.ps1
+
+Scripts peligrosos:
+- eliminar_base_datos_seguro.ps1
+- temp_backend/reset_admin.py
+- temp_backend/recreate_admin.py
+- temp_backend/create_containers.py
+- temp_backend/create_admin*.py
+- temp_backend/fix_user_simple.py
+
+Regla institucional:
+No ejecutar scripts peligrosos sin respaldo, autorizacion y responsable
+designado.
+
+============================================================
+17. PLAN DE CONTINUIDAD OPERATIVA
+============================================================
+
+Escenario: Render se cae
+Impacto:
+- No hay login online.
+- No hay sincronizacion.
+- No hay consultas nube.
+- No hay panel admin.
+Sigue funcionando:
+- Captura local de carnets/notas.
+- SQLite.
+- PDFs locales.
+Accion:
+- Operar offline.
+- No limpiar datos.
+- Verificar pendientes cuando vuelva.
+
+Escenario: Azure Cosmos DB falla
+Impacto:
+- Backend puede responder, pero no guardar/consultar datos remotos.
+- Login puede fallar si usuarios dependen de Cosmos.
+Accion:
+- Mantener captura local.
+- Revisar Azure Portal.
+- No recrear contenedores sin respaldo.
+
+Escenario: Se pierde cres_carnets.sqlite
+Impacto:
+- Perdida de datos locales.
+- Perdida de registros synced=false.
+Accion:
+- Restaurar ultimo backup.
+- Consultar nube para lo ya sincronizado.
+
+Escenario: GitHub desaparece o se pierde acceso
+Impacto:
+- Sin repo remoto.
+- Sin releases.
+- Sin workflows.
+Accion:
+- Usar copia local y releases externas.
+- Restaurar repo desde backup.
+
+Escenario: Se pierde computadora principal
+Impacto:
+- Se pierde entorno local y posiblemente SQLite.
+Accion:
+- Activar Recovery Kit.
+- Restaurar equipo, proyecto, SQLite y accesos.
+
+============================================================
+18. SASU RECOVERY KIT
+============================================================
+
+Estructura recomendada:
+
+SASU_RECOVERY_KIT/
+├── BACKUPS/
+├── SQLITE/
+├── RELEASES/
+├── DOCUMENTACION/
+├── CONFIGURACION/
+├── RECUPERACION/
+
+BACKUPS:
+- ZIP completo del proyecto.
+- Checksum o registro de tamano.
+- Copias historicas.
+
+SQLITE:
+- cres_carnets_YYYYMMDD_HHMM.sqlite
+- Instrucciones de restauracion.
+- Historial de respaldos.
+
+RELEASES:
+- Instalador estable.
+- ZIP Windows estable.
+- VERSION_ESTABLE.txt
+
+DOCUMENTACION:
+- Manual Institucional.
+- Plan de continuidad.
+- Inventario de responsables.
+- Diagrama de arquitectura.
+- Contactos.
+
+CONFIGURACION:
+- render.yaml
+- temp_backend/render.yaml
+- Workflows GitHub
+- Variables requeridas sin valores.
+- Contenedores Cosmos.
+
+RECUPERACION:
+- Checklist imprimible.
+- Restaurar PC.
+- Restaurar SQLite.
+- Verificar Render.
+- Verificar Cosmos.
+- Pruebas post-recuperacion.
+
+============================================================
+19. PROCEDIMIENTOS NORMALIZADOS DE OPERACION
+============================================================
+
+PNO Alta de usuario
+Objetivo: Crear usuario con rol y campus correctos.
+Responsable: Administrador SASU.
+Procedimiento:
+1. Recibir solicitud formal.
+2. Validar rol y campus.
+3. Crear usuario.
+4. Asignar permisos minimos.
+5. Registrar alta.
+Evidencia: Registro de alta.
+
+PNO Baja de usuario
+Objetivo: Retirar accesos.
+Responsable: Administrador SASU.
+Procedimiento:
+1. Recibir solicitud.
+2. Identificar usuario.
+3. Desactivar cuenta.
+4. Registrar baja.
+Evidencia: Registro de baja.
+
+PNO Respaldo diario
+Objetivo: Proteger SQLite.
+Responsable: Operador local.
+Procedimiento:
+1. Cerrar app.
+2. Copiar cres_carnets.sqlite.
+3. Guardar con fecha.
+4. Verificar tamano.
+5. Registrar evidencia.
+
+PNO Respaldo semanal
+Objetivo: Proteger sistema completo.
+Responsable: Tecnico designado.
+Procedimiento:
+1. Copiar proyecto.
+2. Copiar release estable.
+3. Copiar documentacion.
+4. Verificar SQLite reciente.
+5. Registrar evidencia.
+
+PNO Recuperacion de SQLite
+1. Cerrar app.
+2. Ubicar backup valido.
+3. Copiar a Documents.
+4. Nombrar cres_carnets.sqlite.
+5. Abrir app.
+6. Verificar expedientes.
+
+PNO Recuperacion completa
+1. Preparar equipo.
+2. Restaurar Recovery Kit.
+3. Instalar release.
+4. Restaurar SQLite.
+5. Verificar GitHub, Render y Azure.
+6. Probar login.
+7. Probar captura.
+8. Probar sincronizacion.
+
+PNO Verificacion de sincronizacion
+1. Abrir pendientes.
+2. Identificar synced=false.
+3. Sincronizar.
+4. Verificar resultados.
+5. No limpiar si hay errores.
+
+PNO Atencion de incidentes
+1. Clasificar incidente.
+2. Detener acciones peligrosas.
+3. Respaldar estado actual.
+4. Revisar servicio afectado.
+5. Informar responsables.
+6. Documentar.
+
+============================================================
+20. MATRIZ RACI
+============================================================
+
+Actividad | Responsable | Aprueba | Consulta | Informa
+Respaldos diarios | Operador local | Admin SASU | Tecnico | Direccion
+Respaldos semanales | Tecnico | Admin SASU | Admin GitHub | Direccion
+Azure | Admin Azure | Direccion | Admin SASU | Rectoria
+GitHub | Admin GitHub | Direccion | Tecnico | Admin SASU
+Render | Admin Render | Direccion | Admin Azure | Admin SASU
+Observatorio | Coordinador Observatorio | Direccion | Servicios | Rectoria
+Usuarios | Admin SASU | Direccion | Responsable area | Usuario
+Actualizaciones | Admin GitHub/Render | Direccion | Admin SASU | Usuarios
+
+============================================================
+21. POLITICA DE RESPALDO INSTITUCIONAL
+============================================================
+
+Objetivo:
+Garantizar recuperacion de SASU ante fallas, perdida de equipo o datos.
+
+Alcance:
+SQLite, proyecto, backend, releases, configuracion, servicios externos.
+
+Frecuencias:
+- SQLite: diario.
+- Proyecto completo: semanal.
+- Releases: cada publicacion.
+- Variables/secrets: cada cambio.
+- Cosmos DB: documentacion mensual y antes de cambios criticos.
+- Recovery Kit: mensual.
+
+Conservacion:
+- Diarios: 30 dias.
+- Semanales: 6 meses.
+- Releases estables: permanente.
+- Documentacion critica: permanente.
+
+Restauracion:
+Toda restauracion debe registrarse con fecha, responsable, causa y
+resultado.
+
+============================================================
+22. POLITICA DE PROTECCION DE DATOS
+============================================================
+
+Principios:
+- Acceso minimo necesario.
+- Confidencialidad.
+- Trazabilidad.
+- Respaldo seguro.
+- No compartir credenciales.
+- No exportar informacion clinica sin autorizacion.
+
+Datos sensibles:
+- Nombre.
+- Matricula.
+- Correo.
+- Datos clinicos.
+- Alergias.
+- Enfermedades cronicas.
+- Discapacidad.
+- Notas.
+- Vacunacion.
+- Contactos de emergencia.
+
+Accesos:
+Asignar por rol y retirar inmediatamente al concluir relacion operativa.
+
+============================================================
+23. MANUAL DEL OBSERVATORIO DE SALUD UNIVERSITARIA
+============================================================
+
+Objetivo:
+Analizar informacion agregada de salud universitaria para prevencion,
+seguimiento y toma de decisiones.
+
+Variables:
+- Edad
+- Sexo
+- Programa
+- Categoria
+- Discapacidad
+- Alergias
+- Enfermedad cronica
+- Tipo de sangre
+- Vacunacion
+- Citas
+- Notas por area
+
+Indicadores:
+- Total de expedientes.
+- Expedientes por programa.
+- Cobertura de vacunacion.
+- Notas por servicio.
+- Citas por periodo.
+- Pendientes de sincronizacion.
+- Datos incompletos.
+
+Limitaciones:
+- Si Render falla, el observatorio puede quedar inaccesible.
+- Si Cosmos falla, los datos remotos pueden no actualizarse.
+- Si hay synced=false, esos datos no apareceran en la nube.
+
+Buenas practicas:
+- Verificar pendientes antes de emitir reportes.
+- Usar datos agregados.
+- No publicar datos personales.
+- Registrar fecha de corte.
+
+============================================================
+24. PRUEBA DE RECUPERACION COMPLETA
+============================================================
+
+Supuesto:
+Se pierde la computadora principal.
+
+Archivos necesarios:
+- Proyecto completo.
+- cres_carnets.sqlite.
+- Release estable.
+- Variables y configuracion.
+- Documentacion Azure/Render/GitHub.
+
+Servicios:
+- Azure Cosmos DB.
+- Render.
+- GitHub.
+- GitHub Releases.
+
+Checklist:
+[ ] Equipo preparado
+[ ] Proyecto restaurado
+[ ] SQLite restaurado
+[ ] App abre
+[ ] Login online funciona
+[ ] Login offline validado
+[ ] Expedientes visibles
+[ ] Captura de prueba
+[ ] Nota de prueba
+[ ] Sincronizacion exitosa
+[ ] Observatorio validado
+
+RTO estimado:
+4 a 8 horas con respaldos y accesos disponibles.
+
+RPO estimado:
+0 a 24 horas si hay respaldo diario de SQLite. Si no hay respaldo, la
+perdida maxima depende del ultimo respaldo manual.
+
+Madurez:
+Medio-baja a media. Existe arquitectura resiliente, pero depende de
+respaldos manuales y conocimiento operativo.
+
+============================================================
+25. RIESGOS TECNICOS
+============================================================
+
+Criticos:
+- Perdida de cres_carnets.sqlite.
+- Datos synced=false sin respaldo.
+- Secrets de Render/Azure/GitHub no documentados.
+- Cosmos DB inaccesible.
+- Render caido.
+- Variables COSMOS_URL y COSMOS_ENDPOINT inconsistentes.
+- Scripts peligrosos ejecutados por error.
+
+Altos:
+- GitHub Releases como unico canal de instaladores.
+- AuthGate deshabilitado.
+- Permisos frontend/backend divergentes.
+- Falta de importador Cosmos -> SQLite.
+
+Medios:
+- Sin indices explicitos en SQLite.
+- Version pubspec distinta a assets/version.json.
+- Codigo legacy Cloudant.
+- Pantallas con logica grande.
+
+Bajos:
+- Encoding roto en algunos textos.
+- Documentacion dispersa.
+- Backups manuales no estandarizados.
+
+============================================================
+26. RECOMENDACIONES SASU 2.0 Y SASU 3.0
+============================================================
+
+SASU 2.0:
+- Recovery Kit institucional.
+- Backup diario obligatorio.
+- Checklist de sincronizacion.
+- Documentacion de responsables.
+- Normalizar variables de entorno.
+- Separar scripts peligrosos.
+- Unificar versionado.
+- Restaurar AuthGate.
+
+SASU 3.0:
+- Backup automatico cifrado.
+- Restaurador guiado de SQLite.
+- Importador Cosmos -> SQLite.
+- Panel de salud del sistema.
+- Observatorio formal con datos agregados.
+- Pruebas automatizadas offline/online.
+- Ambiente staging.
+- Auditoria centralizada.
+- Gestion institucional de secretos.
+- Alta disponibilidad para backend.
+
+============================================================
+27. HISTORIAL DE VERSIONES DEL MANUAL
+============================================================
+
+Version | Fecha | Cambios principales | Responsable
+1.0 | 2026-06-07 | Emision inicial del documento maestro | Admin SASU / Equipo tecnico
+1.1 | Pendiente | Incorporacion de responsables reales | Admin SASU
+1.2 | Pendiente | Validacion legal y datos personales | Direccion
+2.0 | Pendiente | Actualizacion posterior a backup automatico | Equipo tecnico
+
+============================================================
+28. GLOSARIO TECNICO Y OPERATIVO
+============================================================
+
+SASU:
+Sistema de Atencion en Salud Universitaria.
+
+SQLite:
+Base de datos local usada por la app para operar offline.
+
+cres_carnets.sqlite:
+Archivo fisico de SQLite que contiene datos locales.
+
+Render:
+Servicio en nube donde se despliega FastAPI.
+
+Azure Cosmos DB:
+Base de datos remota donde se guardan datos sincronizados.
+
+FastAPI:
+Framework Python usado para construir el backend.
+
+GitHub:
+Plataforma de codigo, historial y automatizacion.
+
+GitHub Releases:
+Canal de publicacion de instaladores y actualizaciones.
+
+Observatorio:
+Funcion institucional para analizar indicadores agregados de salud.
+
+synced=true:
+Registro local confirmado en nube.
+
+synced=false:
+Registro pendiente local. Debe considerarse dato en riesgo.
+
+Recovery Kit:
+Paquete de respaldo, documentacion y procedimientos para restaurar SASU.
+
+Continuidad Operativa:
+Capacidad de seguir operando o recuperarse despues de incidentes.
+
+RTO:
+Tiempo objetivo de recuperacion.
+
+RPO:
+Perdida maxima aceptable de datos medida desde el ultimo respaldo.
+
+============================================================
+CIERRE
+============================================================
+
+SASU / Carnets UAGro Pro tiene una base tecnica solida para operacion
+offline-first, pero requiere institucionalizar respaldos, responsables,
+Recovery Kit, control de scripts y pruebas de recuperacion. La proteccion
+principal debe concentrarse en cres_carnets.sqlite, secrets de nube,
+releases estables y documentacion operativa.
+
+Fin del documento.
