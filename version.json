@@ -7,9 +7,9 @@
   "artifact": {
     "type": "exe",
     "fileName": "CRES_Carnets_Setup_v2.5.1.exe",
-    "downloadUrl": "https://github.com/edukshare-max/UPDATE_CRES_CARNET_/releases/download/v2.5.1/CRES_Carnets_Setup_v2.5.1.exe",
-    "sha256": "695E86B10714DA0776625E01B3F4F45AFFDDA1D442F67D93AC99CF4C6DEEFB6D",
-    "fileSize": 13925133
+    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.5.1/CRES_Carnets_Setup_v2.5.1.exe",
+    "sha256": "34D79263CE1FBBB2A7B9A9E7CCB9E9335699F9F4B33DDF9CE00F3578669CA012",
+    "fileSize": 13925814
   },
   "changelog": [
     "Actividad reciente por usuario.",
