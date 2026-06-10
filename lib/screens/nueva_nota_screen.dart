@@ -6098,11 +6098,6 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
       );
     }
 
-    // Debug temporal para confirmar claves
-    if (_citasCloud.isNotEmpty) {
-      print('[CITAS_KEYS] ${_citasCloud.first.keys.toList()}');
-    }
-
     // Ordenar por inicio descendente
     final list = [..._citasCloud];
     list.sort((a, b) {
