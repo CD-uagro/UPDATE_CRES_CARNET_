@@ -518,7 +518,10 @@ class AuthService {
         'promociones:read',
         'promociones:write',
         'vacunacion:read',
-        'vacunacion:write'
+        'vacunacion:write',
+        'tickets:read',
+        'tickets:reply',
+        'tickets:update_status'
       ],
       'medico': [
         'carnets:read',
@@ -530,7 +533,10 @@ class AuthService {
         'promociones:read',
         'promociones:write',
         'vacunacion:read',
-        'vacunacion:write'
+        'vacunacion:write',
+        'tickets:read',
+        'tickets:reply',
+        'tickets:update_status'
       ],
       'nutricion': [
         'carnets:read',
@@ -542,7 +548,10 @@ class AuthService {
         'promociones:read',
         'promociones:write',
         'vacunacion:read',
-        'vacunacion:write'
+        'vacunacion:write',
+        'tickets:read',
+        'tickets:reply',
+        'tickets:update_status'
       ],
       'psicologia': [
         'carnets:read',
@@ -554,7 +563,10 @@ class AuthService {
         'promociones:read',
         'promociones:write',
         'vacunacion:read',
-        'vacunacion:write'
+        'vacunacion:write',
+        'tickets:read',
+        'tickets:reply',
+        'tickets:update_status'
       ],
       'odontologia': [
         'carnets:read',
@@ -566,7 +578,10 @@ class AuthService {
         'promociones:read',
         'promociones:write',
         'vacunacion:read',
-        'vacunacion:write'
+        'vacunacion:write',
+        'tickets:read',
+        'tickets:reply',
+        'tickets:update_status'
       ],
       'enfermeria': [
         'carnets:read',
@@ -578,7 +593,10 @@ class AuthService {
         'promociones:read',
         'promociones:write',
         'vacunacion:read',
-        'vacunacion:write'
+        'vacunacion:write',
+        'tickets:read',
+        'tickets:reply',
+        'tickets:update_status'
       ],
       'recepcion': [
         'carnets:read',
@@ -590,7 +608,10 @@ class AuthService {
         'promociones:read',
         'promociones:write',
         'vacunacion:read',
-        'vacunacion:write'
+        'vacunacion:write',
+        'tickets:read',
+        'tickets:reply',
+        'tickets:update_status'
       ],
       'servicios_estudiantiles': [
         'carnets:read',
@@ -602,9 +623,12 @@ class AuthService {
         'promociones:read',
         'promociones:write',
         'vacunacion:read',
-        'vacunacion:write'
+        'vacunacion:write',
+        'tickets:read',
+        'tickets:reply',
+        'tickets:update_status'
       ],
-      'lectura': ['carnets:read'],
+      'lectura': ['carnets:read', 'tickets:read'],
     };
 
     final userPermissions = rolePermissions[user.rol] ?? [];

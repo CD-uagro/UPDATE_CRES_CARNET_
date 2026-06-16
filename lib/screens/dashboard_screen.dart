@@ -3,6 +3,7 @@ import 'package:cres_carnets_ibmcloud/screens/form_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/nueva_nota_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/vaccination_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/promocion_salud_screen.dart';
+import 'package:cres_carnets_ibmcloud/screens/tickets_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/auth/login_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/about_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/database_cleaner_screen.dart';
@@ -42,6 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _canManageExpedientes = false;
   bool _canViewPromocion = false;
   bool _canViewVacunacion = false;
+  bool _canViewTickets = false;
 
   // Manejador de actualizaciones
   UpdateManager? _updateManager;
@@ -107,6 +109,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final canExpedientes = await AuthService.hasPermission('notas:write');
     final canPromocion = await AuthService.hasPermission('promociones:read');
     final canVacunacion = await AuthService.hasPermission('vacunacion:read');
+    final canTickets = await AuthService.hasPermission('tickets:read');
 
     if (mounted) {
       setState(() {
@@ -114,6 +117,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _canManageExpedientes = canExpedientes;
         _canViewPromocion = canPromocion;
         _canViewVacunacion = canVacunacion;
+        _canViewTickets = canTickets;
       });
     }
   }
@@ -733,6 +737,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             },
                             width: cardWidth,
                             badge: 'NUEVO',
+                          ),
+                        );
+                      }
+
+                      if (_canViewTickets) {
+                        visibleOptions.add(
+                          _DashboardCard(
+                            icon: Icons.support_agent_outlined,
+                            title: 'Centro de Atencion',
+                            description: 'Bandeja y seguimiento de tickets',
+                            color: Colors.teal[700]!,
+                            onTap: () async {
+                              final allowed = await _checkPermission(
+                                'tickets:read',
+                                'Centro de Atencion',
+                              );
+                              if (!allowed || !context.mounted) return;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const TicketsScreen(),
+                                ),
+                              );
+                            },
+                            width: cardWidth,
+                            badge: '2.6',
                           ),
                         );
                       }

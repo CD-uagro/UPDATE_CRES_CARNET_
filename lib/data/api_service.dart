@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'cache_service.dart';
 import 'auth_service.dart' as auth;
+import '../models/ticket_admin_model.dart';
 import '../utils/sync_logger.dart';
 import '../utils/clinical_datetime.dart';
 
@@ -1279,6 +1280,159 @@ class ApiService {
       print('[VACUNACION] Error al crear vacunación: $e');
       return null;
     }
+  }
+
+  static Future<List<TicketAdminModel>> getTickets({
+    String? status,
+    String? category,
+    String? priority,
+    String? campus,
+    String? matricula,
+    String? studentId,
+    String? unidadAcademica,
+    String? preparatoria,
+  }) async {
+    final token = await _requireOnlineToken('consultar tickets');
+    final query = <String, String>{
+      if (_hasText(status)) 'status': status!.trim(),
+      if (_hasText(category)) 'category': category!.trim(),
+      if (_hasText(priority)) 'priority': priority!.trim(),
+      if (_hasText(campus)) 'campus': campus!.trim(),
+      if (_hasText(matricula)) 'matricula': matricula!.trim(),
+      if (_hasText(studentId)) 'student_id': studentId!.trim(),
+      if (_hasText(unidadAcademica))
+        'unidad_academica': unidadAcademica!.trim(),
+      if (_hasText(preparatoria)) 'preparatoria': preparatoria!.trim(),
+    };
+    final url = Uri.parse('$baseUrl/tickets').replace(queryParameters: query);
+
+    final response = await http
+        .get(
+          url,
+          headers: _jsonAuthHeaders(token),
+        )
+        .timeout(_normalTimeout);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final items = data is List
+          ? data
+          : data is Map && data['data'] is List
+              ? data['data'] as List
+              : const [];
+      return items
+          .whereType<Map>()
+          .map((item) => TicketAdminModel.fromJson(
+                Map<String, dynamic>.from(item),
+              ))
+          .toList();
+    }
+
+    throw Exception(_httpErrorMessage('consultar tickets', response));
+  }
+
+  static Future<TicketDetailModel> getTicketDetail(String ticketId) async {
+    final token = await _requireOnlineToken('consultar detalle de ticket');
+    final url = Uri.parse('$baseUrl/tickets/$ticketId');
+
+    final response = await http
+        .get(
+          url,
+          headers: _jsonAuthHeaders(token),
+        )
+        .timeout(_normalTimeout);
+
+    if (response.statusCode == 200) {
+      return TicketDetailModel.fromJson(
+        Map<String, dynamic>.from(jsonDecode(response.body) as Map),
+      );
+    }
+
+    throw Exception(_httpErrorMessage('consultar detalle de ticket', response));
+  }
+
+  static Future<TicketAdminModel> updateTicketStatus({
+    required String ticketId,
+    required String status,
+  }) async {
+    final token = await _requireOnlineToken('cambiar estado de ticket');
+    final url = Uri.parse('$baseUrl/tickets/$ticketId/status');
+
+    final response = await http
+        .patch(
+          url,
+          headers: _jsonAuthHeaders(token),
+          body: jsonEncode({'estado': status}),
+        )
+        .timeout(_normalTimeout);
+
+    if (response.statusCode == 200) {
+      return TicketAdminModel.fromJson(
+        Map<String, dynamic>.from(jsonDecode(response.body) as Map),
+      );
+    }
+
+    throw Exception(_httpErrorMessage('cambiar estado de ticket', response));
+  }
+
+  static Future<TicketFollowupModel> addTicketFollowup({
+    required String ticketId,
+    required String message,
+    required String visibility,
+  }) async {
+    final token = await _requireOnlineToken('agregar seguimiento');
+    final url = Uri.parse('$baseUrl/tickets/$ticketId/followups');
+
+    final response = await http
+        .post(
+          url,
+          headers: _jsonAuthHeaders(token),
+          body: jsonEncode({
+            'message': message,
+            'visibility': visibility,
+          }),
+        )
+        .timeout(_normalTimeout);
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return TicketFollowupModel.fromJson(
+        Map<String, dynamic>.from(jsonDecode(response.body) as Map),
+      );
+    }
+
+    throw Exception(_httpErrorMessage('agregar seguimiento', response));
+  }
+
+  static Future<String> _requireOnlineToken(String action) async {
+    final token = await auth.AuthService.getToken();
+    if (token == null || token.isEmpty || token.startsWith('offline_')) {
+      throw Exception(
+        'No hay una sesion en linea para $action. Inicia sesion con conexion.',
+      );
+    }
+    return token;
+  }
+
+  static Map<String, String> _jsonAuthHeaders(String token) {
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  static bool _hasText(String? value) {
+    return value != null && value.trim().isNotEmpty;
+  }
+
+  static String _httpErrorMessage(String action, http.Response response) {
+    var detail = response.body;
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map && decoded['detail'] != null) {
+        detail = decoded['detail'].toString();
+      }
+    } catch (_) {}
+    return 'No se pudo $action (${response.statusCode}): $detail';
   }
 // CIERRA la clase
 }
