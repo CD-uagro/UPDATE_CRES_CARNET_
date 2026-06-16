@@ -1,24 +1,21 @@
 {
-  "version": "2.5.2",
-  "buildNumber": 39,
+  "version": "2.6.0",
+  "buildNumber": 40,
   "releaseDate": "2026-06-16",
-  "channel": "stable",
+  "channel": "development",
   "minimumVersion": "2.0.0",
   "artifact": {
     "type": "exe",
-    "fileName": "CRES_Carnets_Setup_v2.5.2.exe",
-    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.5.2/CRES_Carnets_Setup_v2.5.2.exe",
-    "sha256": "4EBE05A0B26944750C40DB33B2BC6B9D1A2BF38A6FF984E73CE3ACAD4436888B",
-    "fileSize": 13935688
+    "fileName": "CRES_Carnets_Setup_v2.6.0.exe",
+    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.6.0/CRES_Carnets_Setup_v2.6.0.exe",
+    "sha256": "",
+    "fileSize": 0
   },
   "changelog": [
-    "Correccion de duplicacion de notas entre SQLite y Cosmos.",
-    "Correccion de zona horaria clinica para Acapulco/Mexico.",
-    "createdAt en UTC y visualizacion local.",
-    "Identidad estable de nota mediante clientId compartido entre SQLite y Cosmos.",
-    "Migracion segura de base local a schema v7.",
-    "Mejor deduplicacion del timeline clinico.",
-    "Actividad reciente administrable.",
-    "Limpieza y regularizacion de temp_backend."
+    "Inicio de Chat/Ticket Institucional SASU.",
+    "Preparacion de notificaciones push.",
+    "Preparacion de recuperacion de contrasena.",
+    "Preparacion de seguimiento integrado.",
+    "Preparacion de videollamadas institucionales."
   ]
 }

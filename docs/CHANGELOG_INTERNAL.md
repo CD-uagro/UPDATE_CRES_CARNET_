@@ -1,5 +1,21 @@
 # CHANGELOG interno
 
+## 2026-06-16 - Inicio 2.6.0
+
+Estado: desarrollo iniciado.
+
+Incluye planificacion inicial:
+
+- Inicio de Chat/Ticket Institucional SASU.
+- Preparacion de notificaciones push.
+- Preparacion de recuperacion de contrasena.
+- Preparacion de seguimiento integrado.
+- Preparacion de videollamadas institucionales.
+
+Nota:
+
+- No se implementan modulos en este commit inicial.
+
 ## 2026-06-16 - Hotfix 2.5.2
 
 Estado: hotfix estable preparado.
