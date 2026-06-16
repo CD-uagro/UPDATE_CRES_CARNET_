@@ -4,7 +4,7 @@
 ; ============================================
 
 #define MyAppName "CRES Carnets UAGro"
-#define MyAppVersion "2.5.1"
+#define MyAppVersion "2.5.2"
 #define MyAppPublisher "Universidad Autónoma de Guerrero"
 #define MyAppURL "https://uagro.mx"
 #define MyAppExeName "cres_carnets_ibmcloud.exe"
