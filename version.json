@@ -8,8 +8,8 @@
     "type": "exe",
     "fileName": "CRES_Carnets_Setup_v2.6.0.exe",
     "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.6.0/CRES_Carnets_Setup_v2.6.0.exe",
-    "sha256": "",
-    "fileSize": 0
+    "sha256": "8B574E415DC528A2BDEC141903C85D036CD1A7AEAE450939D802083F9B585BC5",
+    "fileSize": 13969970
   },
   "changelog": [
     "Inicio de Chat/Ticket Institucional SASU.",
