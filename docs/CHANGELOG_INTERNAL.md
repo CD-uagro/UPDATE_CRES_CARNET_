@@ -7,11 +7,14 @@ Estado: hotfix estable preparado.
 Incluye:
 
 - Correccion de notas duplicadas entre almacenamiento local y nube.
-- Correccion de horarios clinicos usando UTC interno y hora local en interfaz.
-- Identidad estable de notas mediante clientId compartido entre SQLite y Cosmos.
-- Mejora de deduplicacion en timeline clinico.
+- Correccion de duplicacion de notas entre SQLite y Cosmos.
+- Correccion de zona horaria clinica para Acapulco/Mexico.
+- createdAt en UTC y visualizacion local.
+- Identidad estable de nota mediante clientId compartido entre SQLite y Cosmos.
 - Migracion segura de base local a schema v7.
-- Actividad reciente permite quitar accesos rapidos individuales o limpiar toda la lista sin borrar datos clinicos.
+- Mejor deduplicacion del timeline clinico.
+- Actividad reciente administrable: quitar paciente reciente, quitar nota reciente y limpiar toda la lista sin borrar datos clinicos reales.
+- Limpieza y regularizacion de temp_backend.
 
 Alcance congelado:
 
