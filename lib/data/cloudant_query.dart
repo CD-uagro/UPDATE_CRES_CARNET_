@@ -26,6 +26,7 @@ class CloudantQueries {
     required String cuerpo,
     required String tratante,
     String? idOverride,
+    DateTime? createdAt,
   }) async {
     await ApiService.pushSingleNote(
       matricula: matricula,
@@ -33,6 +34,7 @@ class CloudantQueries {
       cuerpo: cuerpo,
       tratante: tratante,
       idOverride: idOverride,
+      createdAt: createdAt,
     );
   }
 }

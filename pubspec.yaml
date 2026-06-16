@@ -1,7 +1,7 @@
 name: cres_carnets_ibmcloud
 description: CRES Carnets - Offline-first (Flutter + SQLite) con sincronizacion a Azure Cosmos DB
 publish_to: "none"
-version: 2.5.1+38
+version: 2.5.2+39
 
 environment:
   sdk: ">=3.3.0 <4.0.0"

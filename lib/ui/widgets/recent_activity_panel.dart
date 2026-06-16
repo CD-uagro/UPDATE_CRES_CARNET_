@@ -5,7 +5,7 @@ import '../../data/auth_service.dart';
 import '../../data/recent_activity_service.dart';
 import '../uagro_theme.dart';
 
-class RecentActivityPanel extends StatelessWidget {
+class RecentActivityPanel extends StatefulWidget {
   final AuthUser user;
   final ValueChanged<String> onOpenPatient;
   final ValueChanged<String> onOpenNote;
@@ -18,12 +18,36 @@ class RecentActivityPanel extends StatelessWidget {
   });
 
   @override
+  State<RecentActivityPanel> createState() => _RecentActivityPanelState();
+}
+
+class _RecentActivityPanelState extends State<RecentActivityPanel> {
+  late Future<_RecentActivityData> _activityFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _activityFuture = _loadData();
+  }
+
+  @override
+  void didUpdateWidget(covariant RecentActivityPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user.id != widget.user.id ||
+        oldWidget.user.username != widget.user.username ||
+        oldWidget.user.campus != widget.user.campus) {
+      _activityFuture = _loadData();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<_RecentActivityData>(
-      future: _loadData(),
+      future: _activityFuture,
       builder: (context, snapshot) {
         final data = snapshot.data ?? const _RecentActivityData();
         final loading = snapshot.connectionState == ConnectionState.waiting;
+        final hasActivity = data.patients.isNotEmpty || data.notes.isNotEmpty;
 
         return Container(
           padding: const EdgeInsets.all(14),
@@ -69,6 +93,13 @@ class RecentActivityPanel extends StatelessWidget {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
+                  if (!loading && hasActivity)
+                    IconButton(
+                      tooltip: 'Limpiar actividad reciente',
+                      icon: const Icon(Icons.delete_sweep_outlined),
+                      color: UAGroColors.azulMarino,
+                      onPressed: _confirmClearAll,
+                    ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -80,7 +111,8 @@ class RecentActivityPanel extends StatelessWidget {
                     emptyText: 'Aún no hay pacientes atendidos recientemente.',
                     child: _PatientsList(
                       items: data.patients,
-                      onOpen: onOpenPatient,
+                      onOpen: widget.onOpenPatient,
+                      onRemove: _confirmRemovePatient,
                     ),
                   );
                   final notes = _ActivityBlock(
@@ -88,7 +120,8 @@ class RecentActivityPanel extends StatelessWidget {
                     emptyText: 'Aún no has registrado notas recientemente.',
                     child: _NotesList(
                       items: data.notes,
-                      onOpen: onOpenNote,
+                      onOpen: widget.onOpenNote,
+                      onRemove: _confirmRemoveNote,
                     ),
                   );
 
@@ -120,9 +153,86 @@ class RecentActivityPanel extends StatelessWidget {
   }
 
   Future<_RecentActivityData> _loadData() async {
-    final patients = await RecentActivityService.getRecentPatients(user);
-    final notes = await RecentActivityService.getRecentNotes(user);
+    final patients = await RecentActivityService.getRecentPatients(widget.user);
+    final notes = await RecentActivityService.getRecentNotes(widget.user);
     return _RecentActivityData(patients: patients, notes: notes);
+  }
+
+  void _refreshActivity() {
+    if (!mounted) return;
+    setState(() {
+      _activityFuture = _loadData();
+    });
+  }
+
+  Future<void> _confirmRemovePatient(RecentPatientActivity item) async {
+    final confirmed = await _showConfirmDialog(
+      title: '¿Quitar esta actividad reciente?',
+      message:
+          'Esto solo eliminará el acceso rápido de la lista. No borrará información clínica ni registros del paciente.',
+      confirmLabel: 'Quitar',
+    );
+    if (!confirmed) return;
+
+    await RecentActivityService.removePatientActivity(
+      user: widget.user,
+      matricula: item.matricula,
+    );
+    _refreshActivity();
+  }
+
+  Future<void> _confirmRemoveNote(RecentNoteActivity item) async {
+    final confirmed = await _showConfirmDialog(
+      title: '¿Quitar esta actividad reciente?',
+      message:
+          'Esto solo eliminará el acceso rápido de la lista. No borrará información clínica ni registros del paciente.',
+      confirmLabel: 'Quitar',
+    );
+    if (!confirmed) return;
+
+    await RecentActivityService.removeNoteActivity(
+      user: widget.user,
+      noteId: item.noteId,
+    );
+    _refreshActivity();
+  }
+
+  Future<void> _confirmClearAll() async {
+    final confirmed = await _showConfirmDialog(
+      title: 'Limpiar actividad reciente',
+      message:
+          'Esto quitará todos los accesos rápidos recientes. No se eliminarán notas, expedientes ni registros clínicos.',
+      confirmLabel: 'Quitar',
+    );
+    if (!confirmed) return;
+
+    await RecentActivityService.clearRecentActivity(widget.user);
+    _refreshActivity();
+  }
+
+  Future<bool> _showConfirmDialog({
+    required String title,
+    required String message,
+    required String confirmLabel,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
+    );
+    return result == true;
   }
 }
 
@@ -206,10 +316,12 @@ class _EmptyAwareList extends StatelessWidget {
 class _PatientsList extends StatelessWidget {
   final List<RecentPatientActivity> items;
   final ValueChanged<String> onOpen;
+  final ValueChanged<RecentPatientActivity> onRemove;
 
   const _PatientsList({
     required this.items,
     required this.onOpen,
+    required this.onRemove,
   });
 
   @override
@@ -224,6 +336,7 @@ class _PatientsList extends StatelessWidget {
             meta: '${_formatDate(item.occurredAt)} · ${item.areaResponsable}',
             trailing: Icons.chevron_right_rounded,
             onTap: () => onOpen(item.matricula),
+            onRemove: () => onRemove(item),
           ),
       ],
     );
@@ -233,10 +346,12 @@ class _PatientsList extends StatelessWidget {
 class _NotesList extends StatelessWidget {
   final List<RecentNoteActivity> items;
   final ValueChanged<String> onOpen;
+  final ValueChanged<RecentNoteActivity> onRemove;
 
   const _NotesList({
     required this.items,
     required this.onOpen,
+    required this.onRemove,
   });
 
   @override
@@ -253,6 +368,7 @@ class _NotesList extends StatelessWidget {
             description: item.diagnosticoResumen,
             trailing: Icons.chevron_right_rounded,
             onTap: () => onOpen(item.matricula),
+            onRemove: () => onRemove(item),
           ),
       ],
     );
@@ -267,6 +383,7 @@ class _ActivityTile extends StatelessWidget {
   final String? description;
   final IconData trailing;
   final VoidCallback onTap;
+  final VoidCallback onRemove;
 
   const _ActivityTile({
     required this.icon,
@@ -275,6 +392,7 @@ class _ActivityTile extends StatelessWidget {
     required this.meta,
     required this.trailing,
     required this.onTap,
+    required this.onRemove,
     this.description,
   });
 
@@ -342,7 +460,25 @@ class _ActivityTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(trailing, size: 18, color: Colors.grey[600]),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    InkResponse(
+                      onTap: onRemove,
+                      radius: 18,
+                      child: Tooltip(
+                        message: 'Quitar de actividad reciente',
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Icon(trailing, size: 18, color: Colors.grey[600]),
+                  ],
+                ),
               ],
             ),
           ),

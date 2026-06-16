@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'cache_service.dart';
 import 'auth_service.dart' as auth;
 import '../utils/sync_logger.dart';
+import '../utils/clinical_datetime.dart';
 
 /// URL del backend, configurable via environment o fallback
 const String baseUrl = String.fromEnvironment('API_BASE_URL',
@@ -138,13 +139,18 @@ class ApiService {
         'cuerpo': cuerpo,
         'tratante': tratante,
         if (idOverride != null) 'id': idOverride,
-        if (createdAt != null) 'createdAt': createdAt.toIso8601String(),
+        if (createdAt != null)
+          'createdAt': ClinicalDateTime.toUtcIsoStringWithZone(createdAt),
       };
 
       print('[SYNC] 📤 Enviando nota a servidor...');
       print('[SYNC]   - Matrícula: $matricula');
       print('[SYNC]   - ID override: $idOverride');
-      print('[SYNC]   - CreatedAt: ${createdAt?.toIso8601String()}');
+      ClinicalDateTime.debugLog('[NOTES] SAVE_REMOTE');
+      final createdAtUtc = createdAt == null
+          ? null
+          : ClinicalDateTime.toUtcIsoStringWithZone(createdAt);
+      print('[SYNC]   - CreatedAt UTC: $createdAtUtc');
 
       final headers = {
         'Content-Type': 'application/json',
@@ -168,6 +174,19 @@ class ApiService {
       print('[SYNC] 📥 Respuesta del servidor: ${resp.statusCode}');
 
       if (resp.statusCode == 200 || resp.statusCode == 201) {
+        String? remoteId;
+        try {
+          final decoded = jsonDecode(resp.body);
+          if (decoded is Map) {
+            final data = decoded['data'];
+            remoteId = (decoded['id'] ??
+                    (data is Map ? data['id'] : null) ??
+                    idOverride)
+                ?.toString();
+          }
+        } catch (_) {}
+        ClinicalDateTime.debugLog(
+            '[NOTES] SAVE_REMOTE_OK id=${remoteId ?? idOverride ?? "(sin id)"}');
         print('[SYNC] ✅ Nota sincronizada exitosamente');
         await CacheService.invalidateNotas(matricula);
         return true;
@@ -619,8 +638,10 @@ class ApiService {
       String matricula) async {
     try {
       // 🚀 Primero intentar obtener del caché
-      final cached = await CacheService.getNotas(matricula);
+      var cached = await CacheService.getNotas(matricula);
       if (cached != null) {
+        cached = _normalizeNotasData(cached);
+        await CacheService.saveNotas(matricula, cached);
         print('⚡ Notas obtenidas del caché (instantáneo)');
         return cached;
       }
@@ -634,9 +655,11 @@ class ApiService {
         final data = jsonDecode(resp.body);
         if (data is List) {
           print('Notas decodificadas: $data');
-          final notas = data
-              .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
-              .toList();
+          final notas = _normalizeNotasData(
+            data.map<Map<String, dynamic>>(
+              (e) => Map<String, dynamic>.from(e),
+            ),
+          );
 
           // 💾 Guardar en caché
           await CacheService.saveNotas(matricula, notas);
@@ -653,6 +676,81 @@ class ApiService {
       print('Error en getNotasForMatricula: $e');
       return [];
     }
+  }
+
+  static Map<String, dynamic> _normalizeNotaData(Map<String, dynamic> data) {
+    final normalized = Map<String, dynamic>.from(data);
+    final parsed = ClinicalDateTime.parseServerValue(normalized['createdAt']);
+    if (parsed != null) {
+      normalized['createdAt'] = ClinicalDateTime.toUtcIsoString(parsed);
+    }
+    return normalized;
+  }
+
+  static List<Map<String, dynamic>> _normalizeNotasData(
+    Iterable<Map<String, dynamic>> notes,
+  ) {
+    final unique = <Map<String, dynamic>>[];
+    for (final note in notes.map(_normalizeNotaData)) {
+      final existingIndex =
+          unique.indexWhere((item) => _isSameNotaData(item, note));
+      if (existingIndex == -1) {
+        unique.add(note);
+      } else {
+        unique[existingIndex] = _preferredNotaData(unique[existingIndex], note);
+      }
+    }
+    return unique;
+  }
+
+  static bool _isSameNotaData(
+    Map<String, dynamic> a,
+    Map<String, dynamic> b,
+  ) {
+    final aId = (a['id'] ?? '').toString().trim();
+    final bId = (b['id'] ?? '').toString().trim();
+    if (aId.isNotEmpty && bId.isNotEmpty && aId == bId) return true;
+
+    final aDate = ClinicalDateTime.parseServerValue(a['createdAt']);
+    final bDate = ClinicalDateTime.parseServerValue(b['createdAt']);
+    if (aDate == null || bDate == null) return false;
+
+    if (!ClinicalDateTime.isSameClinicalMoment(aDate, bDate)) return false;
+
+    return _notaSignature(a) == _notaSignature(b);
+  }
+
+  static Map<String, dynamic> _preferredNotaData(
+    Map<String, dynamic> a,
+    Map<String, dynamic> b,
+  ) {
+    final aDate = ClinicalDateTime.parseServerValue(a['createdAt']);
+    final bDate = ClinicalDateTime.parseServerValue(b['createdAt']);
+    if (aDate == null || bDate == null) return a;
+
+    final now = DateTime.now().add(const Duration(minutes: 5));
+    final aFuture = aDate.isAfter(now);
+    final bFuture = bDate.isAfter(now);
+    if (aFuture != bFuture) return aFuture ? b : a;
+
+    return aDate.isAfter(bDate) ? a : b;
+  }
+
+  static String _notaSignature(Map<String, dynamic> note) {
+    String clean(dynamic value) =>
+        value
+            ?.toString()
+            .trim()
+            .toLowerCase()
+            .replaceAll(RegExp(r'\s+'), ' ') ??
+        '';
+
+    return [
+      clean(note['matricula']),
+      clean(note['departamento']),
+      clean(note['tratante']),
+      clean(note['cuerpo']),
+    ].join('|');
   }
 
 // Sube una cita para una matrícula

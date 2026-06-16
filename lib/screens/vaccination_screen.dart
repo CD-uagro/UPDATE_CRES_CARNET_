@@ -812,7 +812,7 @@ class _VaccinationScreenState extends State<VaccinationScreen> {
                         border: Border.all(color: Colors.white24),
                       ),
                       child: const Text(
-                        'v2.5.1',
+                        'v2.5.2',
                         style: TextStyle(color: Colors.white70, fontSize: 11),
                       ),
                     ),

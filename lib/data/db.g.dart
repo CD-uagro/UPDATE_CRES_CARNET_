@@ -1202,6 +1202,12 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _clientIdMeta =
+      const VerificationMeta('clientId');
+  @override
+  late final GeneratedColumn<String> clientId = GeneratedColumn<String>(
+      'client_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _matriculaMeta =
       const VerificationMeta('matricula');
   @override
@@ -1231,6 +1237,12 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _syncedMeta = const VerificationMeta('synced');
   @override
   late final GeneratedColumn<bool> synced = GeneratedColumn<bool>(
@@ -1241,8 +1253,17 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
           GeneratedColumn.constraintIsAlways('CHECK ("synced" IN (0, 1))'),
       defaultValue: const Constant(false));
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, matricula, departamento, tratante, cuerpo, createdAt, synced];
+  List<GeneratedColumn> get $columns => [
+        id,
+        clientId,
+        matricula,
+        departamento,
+        tratante,
+        cuerpo,
+        createdAt,
+        updatedAt,
+        synced
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1255,6 +1276,10 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('client_id')) {
+      context.handle(_clientIdMeta,
+          clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta));
     }
     if (data.containsKey('matricula')) {
       context.handle(_matriculaMeta,
@@ -1284,6 +1309,10 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
     if (data.containsKey('synced')) {
       context.handle(_syncedMeta,
           synced.isAcceptableOrUnknown(data['synced']!, _syncedMeta));
@@ -1299,6 +1328,8 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
     return Note(
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      clientId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}client_id']),
       matricula: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}matricula'])!,
       departamento: attachedDatabase.typeMapping
@@ -1309,6 +1340,8 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
           .read(DriftSqlType.string, data['${effectivePrefix}cuerpo'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at']),
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at']),
       synced: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}synced'])!,
     );
@@ -1322,24 +1355,31 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
 
 class Note extends DataClass implements Insertable<Note> {
   final int id;
+  final String? clientId;
   final String matricula;
   final String departamento;
   final String? tratante;
   final String cuerpo;
   final DateTime? createdAt;
+  final DateTime? updatedAt;
   final bool synced;
   const Note(
       {required this.id,
+      this.clientId,
       required this.matricula,
       required this.departamento,
       this.tratante,
       required this.cuerpo,
       this.createdAt,
+      this.updatedAt,
       required this.synced});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    if (!nullToAbsent || clientId != null) {
+      map['client_id'] = Variable<String>(clientId);
+    }
     map['matricula'] = Variable<String>(matricula);
     map['departamento'] = Variable<String>(departamento);
     if (!nullToAbsent || tratante != null) {
@@ -1349,6 +1389,9 @@ class Note extends DataClass implements Insertable<Note> {
     if (!nullToAbsent || createdAt != null) {
       map['created_at'] = Variable<DateTime>(createdAt);
     }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
     map['synced'] = Variable<bool>(synced);
     return map;
   }
@@ -1356,6 +1399,9 @@ class Note extends DataClass implements Insertable<Note> {
   NotesCompanion toCompanion(bool nullToAbsent) {
     return NotesCompanion(
       id: Value(id),
+      clientId: clientId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(clientId),
       matricula: Value(matricula),
       departamento: Value(departamento),
       tratante: tratante == null && nullToAbsent
@@ -1365,6 +1411,9 @@ class Note extends DataClass implements Insertable<Note> {
       createdAt: createdAt == null && nullToAbsent
           ? const Value.absent()
           : Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
       synced: Value(synced),
     );
   }
@@ -1374,11 +1423,13 @@ class Note extends DataClass implements Insertable<Note> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Note(
       id: serializer.fromJson<int>(json['id']),
+      clientId: serializer.fromJson<String?>(json['clientId']),
       matricula: serializer.fromJson<String>(json['matricula']),
       departamento: serializer.fromJson<String>(json['departamento']),
       tratante: serializer.fromJson<String?>(json['tratante']),
       cuerpo: serializer.fromJson<String>(json['cuerpo']),
       createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
       synced: serializer.fromJson<bool>(json['synced']),
     );
   }
@@ -1387,35 +1438,42 @@ class Note extends DataClass implements Insertable<Note> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'clientId': serializer.toJson<String?>(clientId),
       'matricula': serializer.toJson<String>(matricula),
       'departamento': serializer.toJson<String>(departamento),
       'tratante': serializer.toJson<String?>(tratante),
       'cuerpo': serializer.toJson<String>(cuerpo),
       'createdAt': serializer.toJson<DateTime?>(createdAt),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
       'synced': serializer.toJson<bool>(synced),
     };
   }
 
   Note copyWith(
           {int? id,
+          Value<String?> clientId = const Value.absent(),
           String? matricula,
           String? departamento,
           Value<String?> tratante = const Value.absent(),
           String? cuerpo,
           Value<DateTime?> createdAt = const Value.absent(),
+          Value<DateTime?> updatedAt = const Value.absent(),
           bool? synced}) =>
       Note(
         id: id ?? this.id,
+        clientId: clientId.present ? clientId.value : this.clientId,
         matricula: matricula ?? this.matricula,
         departamento: departamento ?? this.departamento,
         tratante: tratante.present ? tratante.value : this.tratante,
         cuerpo: cuerpo ?? this.cuerpo,
         createdAt: createdAt.present ? createdAt.value : this.createdAt,
+        updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
         synced: synced ?? this.synced,
       );
   Note copyWithCompanion(NotesCompanion data) {
     return Note(
       id: data.id.present ? data.id.value : this.id,
+      clientId: data.clientId.present ? data.clientId.value : this.clientId,
       matricula: data.matricula.present ? data.matricula.value : this.matricula,
       departamento: data.departamento.present
           ? data.departamento.value
@@ -1423,6 +1481,7 @@ class Note extends DataClass implements Insertable<Note> {
       tratante: data.tratante.present ? data.tratante.value : this.tratante,
       cuerpo: data.cuerpo.present ? data.cuerpo.value : this.cuerpo,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       synced: data.synced.present ? data.synced.value : this.synced,
     );
   }
@@ -1431,95 +1490,113 @@ class Note extends DataClass implements Insertable<Note> {
   String toString() {
     return (StringBuffer('Note(')
           ..write('id: $id, ')
+          ..write('clientId: $clientId, ')
           ..write('matricula: $matricula, ')
           ..write('departamento: $departamento, ')
           ..write('tratante: $tratante, ')
           ..write('cuerpo: $cuerpo, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('synced: $synced')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      id, matricula, departamento, tratante, cuerpo, createdAt, synced);
+  int get hashCode => Object.hash(id, clientId, matricula, departamento,
+      tratante, cuerpo, createdAt, updatedAt, synced);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Note &&
           other.id == this.id &&
+          other.clientId == this.clientId &&
           other.matricula == this.matricula &&
           other.departamento == this.departamento &&
           other.tratante == this.tratante &&
           other.cuerpo == this.cuerpo &&
           other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
           other.synced == this.synced);
 }
 
 class NotesCompanion extends UpdateCompanion<Note> {
   final Value<int> id;
+  final Value<String?> clientId;
   final Value<String> matricula;
   final Value<String> departamento;
   final Value<String?> tratante;
   final Value<String> cuerpo;
   final Value<DateTime?> createdAt;
+  final Value<DateTime?> updatedAt;
   final Value<bool> synced;
   const NotesCompanion({
     this.id = const Value.absent(),
+    this.clientId = const Value.absent(),
     this.matricula = const Value.absent(),
     this.departamento = const Value.absent(),
     this.tratante = const Value.absent(),
     this.cuerpo = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.synced = const Value.absent(),
   });
   NotesCompanion.insert({
     this.id = const Value.absent(),
+    this.clientId = const Value.absent(),
     required String matricula,
     required String departamento,
     this.tratante = const Value.absent(),
     required String cuerpo,
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.synced = const Value.absent(),
   })  : matricula = Value(matricula),
         departamento = Value(departamento),
         cuerpo = Value(cuerpo);
   static Insertable<Note> custom({
     Expression<int>? id,
+    Expression<String>? clientId,
     Expression<String>? matricula,
     Expression<String>? departamento,
     Expression<String>? tratante,
     Expression<String>? cuerpo,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
     Expression<bool>? synced,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (clientId != null) 'client_id': clientId,
       if (matricula != null) 'matricula': matricula,
       if (departamento != null) 'departamento': departamento,
       if (tratante != null) 'tratante': tratante,
       if (cuerpo != null) 'cuerpo': cuerpo,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
       if (synced != null) 'synced': synced,
     });
   }
 
   NotesCompanion copyWith(
       {Value<int>? id,
+      Value<String?>? clientId,
       Value<String>? matricula,
       Value<String>? departamento,
       Value<String?>? tratante,
       Value<String>? cuerpo,
       Value<DateTime?>? createdAt,
+      Value<DateTime?>? updatedAt,
       Value<bool>? synced}) {
     return NotesCompanion(
       id: id ?? this.id,
+      clientId: clientId ?? this.clientId,
       matricula: matricula ?? this.matricula,
       departamento: departamento ?? this.departamento,
       tratante: tratante ?? this.tratante,
       cuerpo: cuerpo ?? this.cuerpo,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       synced: synced ?? this.synced,
     );
   }
@@ -1529,6 +1606,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (clientId.present) {
+      map['client_id'] = Variable<String>(clientId.value);
     }
     if (matricula.present) {
       map['matricula'] = Variable<String>(matricula.value);
@@ -1545,6 +1625,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
     if (synced.present) {
       map['synced'] = Variable<bool>(synced.value);
     }
@@ -1555,11 +1638,13 @@ class NotesCompanion extends UpdateCompanion<Note> {
   String toString() {
     return (StringBuffer('NotesCompanion(')
           ..write('id: $id, ')
+          ..write('clientId: $clientId, ')
           ..write('matricula: $matricula, ')
           ..write('departamento: $departamento, ')
           ..write('tratante: $tratante, ')
           ..write('cuerpo: $cuerpo, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('synced: $synced')
           ..write(')'))
         .toString();
@@ -3217,20 +3302,24 @@ typedef $$HealthRecordsTableProcessedTableManager = ProcessedTableManager<
     PrefetchHooks Function()>;
 typedef $$NotesTableCreateCompanionBuilder = NotesCompanion Function({
   Value<int> id,
+  Value<String?> clientId,
   required String matricula,
   required String departamento,
   Value<String?> tratante,
   required String cuerpo,
   Value<DateTime?> createdAt,
+  Value<DateTime?> updatedAt,
   Value<bool> synced,
 });
 typedef $$NotesTableUpdateCompanionBuilder = NotesCompanion Function({
   Value<int> id,
+  Value<String?> clientId,
   Value<String> matricula,
   Value<String> departamento,
   Value<String?> tratante,
   Value<String> cuerpo,
   Value<DateTime?> createdAt,
+  Value<DateTime?> updatedAt,
   Value<bool> synced,
 });
 
@@ -3244,6 +3333,9 @@ class $$NotesTableFilterComposer extends Composer<_$AppDatabase, $NotesTable> {
   });
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get clientId => $composableBuilder(
+      column: $table.clientId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get matricula => $composableBuilder(
       column: $table.matricula, builder: (column) => ColumnFilters(column));
@@ -3259,6 +3351,9 @@ class $$NotesTableFilterComposer extends Composer<_$AppDatabase, $NotesTable> {
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get synced => $composableBuilder(
       column: $table.synced, builder: (column) => ColumnFilters(column));
@@ -3276,6 +3371,9 @@ class $$NotesTableOrderingComposer
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get clientId => $composableBuilder(
+      column: $table.clientId, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get matricula => $composableBuilder(
       column: $table.matricula, builder: (column) => ColumnOrderings(column));
 
@@ -3291,6 +3389,9 @@ class $$NotesTableOrderingComposer
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get synced => $composableBuilder(
       column: $table.synced, builder: (column) => ColumnOrderings(column));
@@ -3308,6 +3409,9 @@ class $$NotesTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<String> get clientId =>
+      $composableBuilder(column: $table.clientId, builder: (column) => column);
+
   GeneratedColumn<String> get matricula =>
       $composableBuilder(column: $table.matricula, builder: (column) => column);
 
@@ -3322,6 +3426,9 @@ class $$NotesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
   GeneratedColumn<bool> get synced =>
       $composableBuilder(column: $table.synced, builder: (column) => column);
@@ -3351,38 +3458,46 @@ class $$NotesTableTableManager extends RootTableManager<
               $$NotesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
+            Value<String?> clientId = const Value.absent(),
             Value<String> matricula = const Value.absent(),
             Value<String> departamento = const Value.absent(),
             Value<String?> tratante = const Value.absent(),
             Value<String> cuerpo = const Value.absent(),
             Value<DateTime?> createdAt = const Value.absent(),
+            Value<DateTime?> updatedAt = const Value.absent(),
             Value<bool> synced = const Value.absent(),
           }) =>
               NotesCompanion(
             id: id,
+            clientId: clientId,
             matricula: matricula,
             departamento: departamento,
             tratante: tratante,
             cuerpo: cuerpo,
             createdAt: createdAt,
+            updatedAt: updatedAt,
             synced: synced,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
+            Value<String?> clientId = const Value.absent(),
             required String matricula,
             required String departamento,
             Value<String?> tratante = const Value.absent(),
             required String cuerpo,
             Value<DateTime?> createdAt = const Value.absent(),
+            Value<DateTime?> updatedAt = const Value.absent(),
             Value<bool> synced = const Value.absent(),
           }) =>
               NotesCompanion.insert(
             id: id,
+            clientId: clientId,
             matricula: matricula,
             departamento: departamento,
             tratante: tratante,
             cuerpo: cuerpo,
             createdAt: createdAt,
+            updatedAt: updatedAt,
             synced: synced,
           ),
           withReferenceMapper: (p0) => p0

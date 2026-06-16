@@ -1,5 +1,26 @@
 # CHANGELOG interno
 
+## 2026-06-16 - Hotfix 2.5.2
+
+Estado: hotfix estable preparado.
+
+Incluye:
+
+- Correccion de notas duplicadas entre almacenamiento local y nube.
+- Correccion de horarios clinicos usando UTC interno y hora local en interfaz.
+- Identidad estable de notas mediante clientId compartido entre SQLite y Cosmos.
+- Mejora de deduplicacion en timeline clinico.
+- Migracion segura de base local a schema v7.
+- Actividad reciente permite quitar accesos rapidos individuales o limpiar toda la lista sin borrar datos clinicos.
+
+Alcance congelado:
+
+- No incluye chat institucional.
+- No incluye notificaciones.
+- No incluye recuperacion de contrasena.
+- No incluye videollamadas.
+- No incluye seguimiento integrado.
+
 ## 2026-06-08 - Cierre de release 2.4.36
 
 Estado: estable publicada.

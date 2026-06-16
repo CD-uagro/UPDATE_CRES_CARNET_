@@ -12,6 +12,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:drift/drift.dart' show Value, OrderingMode, OrderingTerm;
 import 'cita_form_screen.dart';
@@ -20,6 +21,7 @@ import '../data/db.dart' as DB;
 import '../data/api_service.dart';
 import '../data/auth_service.dart';
 import '../data/recent_activity_service.dart';
+import '../utils/clinical_datetime.dart';
 
 import 'dashboard_screen.dart';
 import 'form_screen.dart';
@@ -65,6 +67,7 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
     'SASU_OBSERVATORIO_URL',
     defaultValue: '',
   );
+  static const Uuid _uuid = Uuid();
 
   final _id = TextEditingController();
   final _mat = TextEditingController();
@@ -224,8 +227,18 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
   }
 
   String _fmtDate(DateTime? dt) {
-    if (dt == null) return '-';
-    return DateFormat('yyyy-MM-dd HH:mm').format(dt.toLocal());
+    return ClinicalDateTime.formatDisplayLocal(dt);
+  }
+
+  String _fmtLocalNoteDate(DB.Note note) {
+    return ClinicalDateTime.formatDisplayLocal(
+      note.createdAt,
+      assumeUtcIfUnzonedDateTime: true,
+    );
+  }
+
+  String _fmtServerDate(dynamic value) {
+    return ClinicalDateTime.formatDisplayLocal(value);
   }
 
   String _show(dynamic v) {
@@ -827,6 +840,10 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
         if (d.isNotEmpty) servicios.add(d);
       }
       final integral = servicios.length >= 2;
+      final notasFinalDeduplicadas =
+          _timelineItemsFrom(notasNube, notasLocal).length;
+      ClinicalDateTime.debugLog(
+          '[NOTES] TIMELINE_LOAD local=${notasLocal.length} cloud=${notasNube.length} finalDedup=$notasFinalDeduplicadas');
 
       // 🎯 OPTIMIZACIÓN: Una sola llamada a setState con todos los datos
       if (!mounted) return;
@@ -1146,6 +1163,8 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
         (_deptChoice == 'Otra' ? _depto.text.trim() : (_deptChoice ?? ''))
             .trim();
     final now = DateTime.now();
+    final noteCreatedAtUtc = now.toUtc();
+    final noteId = 'nota:${_uuid.v4()}';
     final isPsychology = _isPsychologyDepartment(dep);
     final isPsychologyIndividual =
         !isPsychology || _tipoAtencionPsicologica == 'Individual';
@@ -1156,6 +1175,8 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
     final dx = _diagnostico.text.trim();
     final tc = _tipoConsulta?.trim() ?? '';
     final c = _cuerpo.text.trim();
+    ClinicalDateTime.debugLog(
+        '[NOTES] CREATE noteId=$noteId patientId=$m createdAtLocal=$now createdAtUtc=${ClinicalDateTime.toUtcIsoString(noteCreatedAtUtc)} origin=form');
 
     final missing = <String>[];
     if (m.isEmpty) missing.add('Matrícula');
@@ -1274,16 +1295,20 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
 
       // ========== PASO 3: GUARDAR EN BASE DE DATOS LOCAL ==========
       final comp = DB.NotesCompanion.insert(
+        clientId: Value(noteId),
         matricula: m,
         departamento: dep.isEmpty ? 'Nota' : dep,
         cuerpo: cuerpoFinal,
         tratante: Value(t),
-        createdAt: Value(DateTime.now()),
+        createdAt: Value(noteCreatedAtUtc),
+        updatedAt: Value(noteCreatedAtUtc),
         synced: const Value(false),
       );
 
+      ClinicalDateTime.debugLog(
+          '[NOTES] SAVE_LOCAL noteId=$noteId patientId=$m createdAtUtc=${ClinicalDateTime.toUtcIsoString(noteCreatedAtUtc)}');
       final rowId = await widget.db.insertNote(comp);
-      final recentNoteId = rowId.toString();
+      final recentNoteId = noteId;
       final diagnosticoReciente =
           _diagnosisSummaryForRecentActivity(dx, cuerpoFinal);
 
@@ -1294,6 +1319,8 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
         diagnosticoResumen: diagnosticoReciente,
         synced: false,
       );
+      ClinicalDateTime.debugLog(
+          '[NOTES] SAVE_LOCAL_OK rowId=$rowId noteId=$noteId origin=local');
       print(
           '✅ [GUARDADO LOCAL] Nota insertada rowId=$rowId para matrícula=$m depto=$dep');
 
@@ -1307,6 +1334,8 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
           departamento: dep,
           cuerpo: cuerpoFinal,
           tratante: t,
+          idOverride: noteId,
+          createdAt: noteCreatedAtUtc,
         );
         subioNube = ok;
 
@@ -1572,12 +1601,17 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
 
       for (final nota in pendingNotes) {
         try {
+          final noteId = _localNoteLogicalId(nota);
           final ok = await ApiService.pushSingleNote(
             matricula: nota.matricula,
             departamento: nota.departamento,
             cuerpo: nota.cuerpo,
             tratante: nota.tratante ?? '',
-            idOverride: 'nota_local_${nota.id}',
+            idOverride: noteId,
+            createdAt: ClinicalDateTime.utcForStoredClinicalNote(
+              nota.createdAt,
+              clientId: nota.clientId,
+            ),
           );
 
           if (ok) {
@@ -2323,7 +2357,7 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
     final dep = (n['departamento'] ?? '-') as String;
     final cuerpo = (n['cuerpo'] ?? '') as String;
     final trat = (n['tratante'] ?? '') as String?;
-    final fecha = (n['createdAt'] ?? '') as String;
+    final fecha = _fmtServerDate(n['createdAt']);
     final mat = _mat.text.trim();
 
     final ex = _extractDxConsulta(cuerpo);
@@ -2348,7 +2382,7 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
     final dep = n.departamento;
     final cuerpo = n.cuerpo;
     final trat = n.tratante;
-    final fecha = _fmtDate(n.createdAt);
+    final fecha = _fmtLocalNoteDate(n);
     final mat = _mat.text.trim();
 
     final ex = _extractDxConsulta(cuerpo);
@@ -2452,7 +2486,7 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
             final dep = (n['departamento'] ?? '-').toString();
             final cuerpo = (n['cuerpo'] ?? '').toString();
             final trat = (n['tratante'] ?? '').toString();
-            final fecha = (n['createdAt'] ?? '').toString();
+            final fecha = _fmtServerDate(n['createdAt']);
             final adjuntos = _extraerAdjuntosDesdeCuerpoNota(cuerpo);
             final cuerpoVisible = _cuerpoSinBloqueAdjuntosLocales(cuerpo);
 
@@ -2548,7 +2582,7 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
             final dep = n.departamento;
             final cuerpo = n.cuerpo;
             final trat = n.tratante ?? '';
-            final fecha = _fmtDate(n.createdAt);
+            final fecha = _fmtLocalNoteDate(n);
             final adjuntos = _extraerAdjuntosDesdeCuerpoNota(cuerpo);
             final cuerpoVisible = _cuerpoSinBloqueAdjuntosLocales(cuerpo);
 
@@ -3285,7 +3319,7 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
                         border: Border.all(color: Colors.white24),
                       ),
                       child: const Text(
-                        'v2.5.1',
+                        'v2.5.2',
                         style: TextStyle(color: Colors.white70, fontSize: 11),
                       ),
                     ),
@@ -4406,12 +4440,40 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
 
   Widget _buildTimelineItem(Map<String, dynamic> item, int index) {
     final color = _departmentColor(item['departamento'] as String);
-    final date = item['date'] as DateTime?;
-    final day = date == null ? '--' : DateFormat('dd').format(date);
-    final month =
-        date == null ? '' : DateFormat('MMM').format(date).replaceAll('.', '');
-    final year = date == null ? '' : DateFormat('yyyy').format(date);
-    final time = date == null ? '' : DateFormat('hh:mm a').format(date);
+    final createdAt = item['createdAt'] ?? item['date'];
+    final assumeUtcIfUnzonedDateTime = item['source'] == 'local';
+    final date = ClinicalDateTime.toDisplayLocal(
+      createdAt,
+      assumeUtcIfUnzonedDateTime: assumeUtcIfUnzonedDateTime,
+    );
+    final day = date == null
+        ? '--'
+        : ClinicalDateTime.formatDisplayLocal(
+            createdAt,
+            pattern: 'dd',
+            assumeUtcIfUnzonedDateTime: assumeUtcIfUnzonedDateTime,
+          );
+    final month = date == null
+        ? ''
+        : ClinicalDateTime.formatDisplayLocal(
+            createdAt,
+            pattern: 'MMM',
+            assumeUtcIfUnzonedDateTime: assumeUtcIfUnzonedDateTime,
+          ).replaceAll('.', '');
+    final year = date == null
+        ? ''
+        : ClinicalDateTime.formatDisplayLocal(
+            createdAt,
+            pattern: 'yyyy',
+            assumeUtcIfUnzonedDateTime: assumeUtcIfUnzonedDateTime,
+          );
+    final time = date == null
+        ? ''
+        : ClinicalDateTime.formatDisplayLocal(
+            createdAt,
+            pattern: 'hh:mm a',
+            assumeUtcIfUnzonedDateTime: assumeUtcIfUnzonedDateTime,
+          );
     final isCloud = item['source'] == 'cloud';
     final psicoTipo = (item['psicoTipo'] ?? '').toString();
     final psicoTema = (item['psicoTema'] ?? '').toString();
@@ -4846,8 +4908,16 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
   }
 
   List<Map<String, dynamic>> _allTimelineItems() {
+    return _timelineItemsFrom(_notasCloud, _notasLocal);
+  }
+
+  List<Map<String, dynamic>> _timelineItemsFrom(
+    List<Map<String, dynamic>> notasCloud,
+    List<DB.Note> notasLocal,
+  ) {
     final items = <Map<String, dynamic>>[];
-    for (final n in _notasCloud) {
+    for (final n in notasCloud) {
+      final createdAt = n['createdAt'] ?? n['timestamp'];
       final dep = (n['departamento'] ?? 'Atención').toString();
       final cuerpo = (n['cuerpo'] ?? '').toString();
       final diagnostico = (n['diagnostico'] ?? '').toString();
@@ -4859,38 +4929,46 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
       items.add({
         'source': 'cloud',
         'raw': n,
+        'createdAt': createdAt,
+        'matricula': (n['matricula'] ?? '').toString(),
         'departamento': dep.isEmpty ? 'Atención' : dep,
         'titulo': _timelineTitleForBody(cuerpo, titleFallback),
         'descripcion':
             cuerpoVisible.isEmpty ? 'Sin descripción' : cuerpoVisible,
         'tratante': (n['tratante'] ?? 'No registrado').toString(),
-        'date': _parseCloudDate(n['createdAt'] ?? n['timestamp']),
+        'date': _parseCloudDate(createdAt),
         'psicoTipo': psicoMeta['tipo'] ?? '',
         'psicoTema': psicoMeta['tema'] ?? '',
         'psicoParticipantes': psicoMeta['participantes'] ?? '',
         'adjuntosLocales': adjuntos,
       });
     }
-    for (final n in _notasLocal) {
+    for (final n in notasLocal) {
       final psicoMeta = _psychologyMetaFromBody(n.cuerpo);
       final adjuntos = _extraerAdjuntosDesdeCuerpoNota(n.cuerpo);
       final cuerpoVisible = _cuerpoSinBloqueAdjuntosLocales(n.cuerpo);
       items.add({
         'source': 'local',
         'raw': n,
+        'createdAt': n.createdAt,
+        'matricula': n.matricula,
         'departamento': n.departamento.isEmpty ? 'Atención' : n.departamento,
         'titulo': _timelineTitleForBody(n.cuerpo, _firstLine(cuerpoVisible)),
         'descripcion':
             cuerpoVisible.isEmpty ? 'Sin descripción' : cuerpoVisible,
         'tratante': (n.tratante ?? '').isEmpty ? 'No registrado' : n.tratante,
-        'date': n.createdAt,
+        'date': ClinicalDateTime.localForStoredClinicalNote(
+          n.createdAt,
+          clientId: n.clientId,
+        ),
         'psicoTipo': psicoMeta['tipo'] ?? '',
         'psicoTema': psicoMeta['tema'] ?? '',
         'psicoParticipantes': psicoMeta['participantes'] ?? '',
         'adjuntosLocales': adjuntos,
       });
     }
-    items.sort((a, b) {
+    final uniqueItems = _dedupeTimelineItems(items);
+    uniqueItems.sort((a, b) {
       final ad = a['date'] as DateTime?;
       final bd = b['date'] as DateTime?;
       if (ad == null && bd == null) return 0;
@@ -4898,7 +4976,93 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
       if (bd == null) return -1;
       return bd.compareTo(ad);
     });
-    return items;
+    return uniqueItems;
+  }
+
+  List<Map<String, dynamic>> _dedupeTimelineItems(
+      List<Map<String, dynamic>> items) {
+    final unique = <Map<String, dynamic>>[];
+
+    for (final item in items) {
+      final existingIndex = unique
+          .indexWhere((candidate) => _isSameTimelineNote(candidate, item));
+      if (existingIndex == -1) {
+        unique.add(item);
+        continue;
+      }
+
+      unique[existingIndex] =
+          _preferredTimelineDuplicate(unique[existingIndex], item);
+    }
+
+    return unique;
+  }
+
+  bool _isSameTimelineNote(
+    Map<String, dynamic> a,
+    Map<String, dynamic> b,
+  ) {
+    final aId = _timelineSourceId(a);
+    final bId = _timelineSourceId(b);
+    if (aId.isNotEmpty && bId.isNotEmpty && aId == bId) return true;
+
+    final aDate = a['date'] as DateTime?;
+    final bDate = b['date'] as DateTime?;
+    if (aDate == null || bDate == null) return false;
+
+    if (!ClinicalDateTime.isSameClinicalMoment(aDate, bDate)) return false;
+
+    return _timelineSignature(a) == _timelineSignature(b);
+  }
+
+  Map<String, dynamic> _preferredTimelineDuplicate(
+    Map<String, dynamic> a,
+    Map<String, dynamic> b,
+  ) {
+    final aDate = a['date'] as DateTime?;
+    final bDate = b['date'] as DateTime?;
+    if (aDate == null || bDate == null) return a;
+
+    final now = DateTime.now().add(const Duration(minutes: 5));
+    final aFuture = aDate.isAfter(now);
+    final bFuture = bDate.isAfter(now);
+    if (aFuture != bFuture) return aFuture ? b : a;
+
+    return aDate.isAfter(bDate) ? a : b;
+  }
+
+  String _timelineSourceId(Map<String, dynamic> item) {
+    final raw = item['raw'];
+    if (raw is Map) {
+      return (raw['id'] ?? raw['clientId'] ?? raw['client_id'] ?? '')
+          .toString()
+          .trim();
+    }
+    if (raw is DB.Note) return _localNoteLogicalId(raw);
+    return '';
+  }
+
+  String _localNoteLogicalId(DB.Note note) {
+    final clientId = note.clientId?.trim() ?? '';
+    return clientId.isNotEmpty ? clientId : 'nota_local_${note.id}';
+  }
+
+  String _timelineSignature(Map<String, dynamic> item) {
+    String clean(dynamic value) =>
+        value
+            ?.toString()
+            .trim()
+            .toLowerCase()
+            .replaceAll(RegExp(r'\s+'), ' ') ??
+        '';
+
+    return [
+      clean(item['matricula']),
+      clean(item['departamento']),
+      clean(item['tratante']),
+      clean(item['titulo']),
+      clean(item['descripcion']),
+    ].join('|');
   }
 
   String _latestAttentionDateLabel() {
@@ -4982,9 +5146,7 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
   }
 
   DateTime? _parseCloudDate(dynamic value) {
-    if (value == null) return null;
-    if (value is DateTime) return value;
-    return DateTime.tryParse(value.toString());
+    return ClinicalDateTime.toDisplayLocal(value);
   }
 
   String _firstLine(String text) {

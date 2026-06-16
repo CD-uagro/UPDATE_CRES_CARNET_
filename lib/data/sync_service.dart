@@ -1,6 +1,7 @@
 // lib/data/sync_service.dart
 import 'db.dart';
 import 'api_service.dart';
+import '../utils/clinical_datetime.dart';
 
 class SyncService {
   final AppDatabase db;
@@ -83,8 +84,11 @@ class SyncService {
             departamento: note.departamento,
             cuerpo: note.cuerpo,
             tratante: note.tratante ?? '',
-            idOverride: 'nota_local_${note.id}',
-            createdAt: note.createdAt,
+            idOverride: _logicalNoteId(note),
+            createdAt: ClinicalDateTime.utcForStoredClinicalNote(
+              note.createdAt,
+              clientId: note.clientId,
+            ),
           );
 
           if (success) {
@@ -230,7 +234,11 @@ class SyncService {
         departamento: note.departamento,
         cuerpo: note.cuerpo,
         tratante: note.tratante ?? '',
-        idOverride: 'nota_local_${note.id}',
+        idOverride: _logicalNoteId(note),
+        createdAt: ClinicalDateTime.utcForStoredClinicalNote(
+          note.createdAt,
+          clientId: note.clientId,
+        ),
       );
 
       if (success) {
@@ -241,6 +249,11 @@ class SyncService {
       print('Error syncing note ${note.id}: $e');
       return false;
     }
+  }
+
+  String _logicalNoteId(Note note) {
+    final clientId = note.clientId?.trim() ?? '';
+    return clientId.isNotEmpty ? clientId : 'nota_local_${note.id}';
   }
 }
 

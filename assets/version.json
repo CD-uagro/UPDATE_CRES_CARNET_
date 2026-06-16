@@ -1,22 +1,22 @@
 {
-  "version": "2.5.1",
-  "buildNumber": 38,
-  "releaseDate": "2026-06-10",
+  "version": "2.5.2",
+  "buildNumber": 39,
+  "releaseDate": "2026-06-16",
   "channel": "stable",
   "minimumVersion": "2.0.0",
   "artifact": {
     "type": "exe",
-    "fileName": "CRES_Carnets_Setup_v2.5.1.exe",
-    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.5.1/CRES_Carnets_Setup_v2.5.1.exe",
-    "sha256": "F0470C53F85442A4B1DCDFD9DC6CDFAC158B3B31F07EA2A845CB5FE229A1B7AA",
-    "fileSize": 13926494
+    "fileName": "cres_carnets_ibmcloud.exe",
+    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.5.2/cres_carnets_ibmcloud.exe",
+    "sha256": "8E65B2C3FF152C974E9DF07BC2FDCB79B4C8C66D0828FE53A168C17D16941CD5",
+    "fileSize": 93184
   },
   "changelog": [
-    "Actividad reciente por usuario.",
-    "Ultimos 5 pacientes atendidos.",
-    "Ultimas 5 notas realizadas.",
-    "Acceso rapido a expedientes recientes.",
-    "Correccion de captura de teclado (Backspace/Delete).",
-    "Mejoras de estabilidad y productividad clinica."
+    "Correccion de notas duplicadas entre almacenamiento local y nube.",
+    "Correccion de horarios clinicos usando UTC interno y hora local en interfaz.",
+    "Identidad estable de notas mediante clientId compartido entre SQLite y Cosmos.",
+    "Mejora de deduplicacion en timeline clinico.",
+    "Migracion segura de base local a schema v7.",
+    "Actividad reciente ahora permite quitar accesos rapidos individuales o limpiar toda la lista sin borrar datos clinicos."
   ]
 }

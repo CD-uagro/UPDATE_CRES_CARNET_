@@ -9,6 +9,7 @@ Future<void> syncNoteToCloud({
   required String cuerpo,
   required String tratante,
   String? idOverride,
+  DateTime? createdAt,
 }) async {
   dev.log(
     '[syncNoteToCloud] push -> {matricula:$matricula, dep:$departamento, len:${cuerpo.length}, tratante:$tratante}',
@@ -21,6 +22,7 @@ Future<void> syncNoteToCloud({
     cuerpo: cuerpo,
     tratante: tratante,
     idOverride: idOverride,
+    createdAt: createdAt,
   );
 
   dev.log('[syncNoteToCloud] OK (subida completada)', name: 'cres.carnets');

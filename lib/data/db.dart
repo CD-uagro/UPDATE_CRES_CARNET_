@@ -42,11 +42,13 @@ class HealthRecords extends Table {
 
 class Notes extends Table {
   IntColumn get id => integer().autoIncrement()();
+  TextColumn get clientId => text().nullable()();
   TextColumn get matricula => text()(); // FK lógica con HealthRecords.matricula
   TextColumn get departamento => text()();
   TextColumn get tratante => text().nullable()();
   TextColumn get cuerpo => text()();
   DateTimeColumn get createdAt => dateTime().nullable()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
   BoolColumn get synced => boolean()
       .withDefault(const Constant(false))(); // Estado de sincronización
 }
@@ -90,7 +92,7 @@ class AppDatabase extends _$AppDatabase {
 
   // **SUBE** la versión para forzar migración y crear tablas nuevas
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   // Crea y migra esquemas
   @override
@@ -122,6 +124,18 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(
                 healthRecords, healthRecords.escuelaUnidadAcademica);
             await m.addColumn(healthRecords, healthRecords.grupo);
+          }
+          if (from < 7) {
+            await m.addColumn(notes, notes.clientId);
+            await m.addColumn(notes, notes.updatedAt);
+            await customStatement(
+              "UPDATE notes SET client_id = 'nota_local_' || id "
+              "WHERE client_id IS NULL OR TRIM(client_id) = ''",
+            );
+            await customStatement(
+              'UPDATE notes SET updated_at = created_at '
+              'WHERE updated_at IS NULL AND created_at IS NOT NULL',
+            );
           }
         },
       );

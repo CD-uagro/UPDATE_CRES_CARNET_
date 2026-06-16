@@ -194,6 +194,51 @@ class RecentActivityService {
     }
   }
 
+  static Future<void> removePatientActivity({
+    required AuthUser user,
+    required String matricula,
+  }) async {
+    try {
+      final cleanMatricula = matricula.trim();
+      if (cleanMatricula.isEmpty) return;
+
+      final items = await _getAllRecentPatients(user);
+      final updated = items
+          .where((item) => item.matricula.trim() != cleanMatricula)
+          .toList();
+      await _saveRecentPatients(user, updated);
+    } catch (e, st) {
+      debugPrint('RecentActivityService.removePatientActivity failed: $e\n$st');
+    }
+  }
+
+  static Future<void> removeNoteActivity({
+    required AuthUser user,
+    required String noteId,
+  }) async {
+    try {
+      final cleanNoteId = noteId.trim();
+      if (cleanNoteId.isEmpty) return;
+
+      final items = await _getAllRecentNotes(user);
+      final updated =
+          items.where((item) => item.noteId.trim() != cleanNoteId).toList();
+      await _saveRecentNotes(user, updated);
+    } catch (e, st) {
+      debugPrint('RecentActivityService.removeNoteActivity failed: $e\n$st');
+    }
+  }
+
+  static Future<void> clearRecentActivity(AuthUser user) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_patientsKey(user));
+      await prefs.remove(_notesKey(user));
+    } catch (e, st) {
+      debugPrint('RecentActivityService.clearRecentActivity failed: $e\n$st');
+    }
+  }
+
   static Future<List<RecentPatientActivity>> _getAllRecentPatients(
     AuthUser user,
   ) async {
@@ -212,6 +257,32 @@ class RecentActivityService {
       prefs.getString(_notesKey(user)),
       RecentNoteActivity.fromJson,
     ).take(_maxStoredItems).toList();
+  }
+
+  static Future<void> _saveRecentPatients(
+    AuthUser user,
+    List<RecentPatientActivity> items,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _patientsKey(user),
+      jsonEncode(
+        items.take(_maxStoredItems).map((item) => item.toJson()).toList(),
+      ),
+    );
+  }
+
+  static Future<void> _saveRecentNotes(
+    AuthUser user,
+    List<RecentNoteActivity> items,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _notesKey(user),
+      jsonEncode(
+        items.take(_maxStoredItems).map((item) => item.toJson()).toList(),
+      ),
+    );
   }
 
   static List<T> _decodeList<T>(
