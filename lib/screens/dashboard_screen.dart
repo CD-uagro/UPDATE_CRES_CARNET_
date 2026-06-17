@@ -4,6 +4,7 @@ import 'package:cres_carnets_ibmcloud/screens/nueva_nota_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/vaccination_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/promocion_salud_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/tickets_screen.dart';
+import 'package:cres_carnets_ibmcloud/screens/appointments_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/auth/login_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/about_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/database_cleaner_screen.dart';
@@ -13,6 +14,7 @@ import 'package:cres_carnets_ibmcloud/ui/connection_indicator.dart';
 import 'package:cres_carnets_ibmcloud/ui/widgets/recent_activity_panel.dart';
 import 'package:cres_carnets_ibmcloud/ui/mobile_adaptive.dart'; // Para detectar móvil
 import 'package:cres_carnets_ibmcloud/data/db.dart' as app_db;
+import 'package:cres_carnets_ibmcloud/data/api_service.dart';
 import 'package:cres_carnets_ibmcloud/data/auth_service.dart';
 import 'package:cres_carnets_ibmcloud/data/sync_service.dart';
 import 'package:cres_carnets_ibmcloud/services/version_service.dart';
@@ -44,6 +46,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _canViewPromocion = false;
   bool _canViewVacunacion = false;
   bool _canViewTickets = false;
+  bool _canViewAppointments = false;
+  int _pendingAppointmentRequests = 0;
 
   // Manejador de actualizaciones
   UpdateManager? _updateManager;
@@ -110,6 +114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final canPromocion = await AuthService.hasPermission('promociones:read');
     final canVacunacion = await AuthService.hasPermission('vacunacion:read');
     final canTickets = await AuthService.hasPermission('tickets:read');
+    final canAppointments = await AuthService.hasPermission('citas:read');
 
     if (mounted) {
       setState(() {
@@ -118,7 +123,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _canViewPromocion = canPromocion;
         _canViewVacunacion = canVacunacion;
         _canViewTickets = canTickets;
+        _canViewAppointments = canAppointments;
       });
+    }
+    if (canAppointments) {
+      _loadPendingAppointmentRequests();
+    }
+  }
+
+  Future<void> _loadPendingAppointmentRequests() async {
+    try {
+      final appointments =
+          await ApiService.getAppointments(status: 'requested');
+      if (!mounted) return;
+      setState(() {
+        _pendingAppointmentRequests = appointments.length;
+      });
+    } catch (e) {
+      debugPrint('No se pudo cargar contador de citas pendientes: $e');
     }
   }
 
@@ -762,6 +784,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             },
                             width: cardWidth,
                             badge: '2.6',
+                          ),
+                        );
+                      }
+
+                      if (_canViewAppointments) {
+                        visibleOptions.add(
+                          _DashboardCard(
+                            icon: Icons.event_available_outlined,
+                            title: 'Agenda Integrada',
+                            description: 'Solicitudes de cita del alumnado',
+                            color: Colors.blue[700]!,
+                            onTap: () async {
+                              final allowed = await _checkPermission(
+                                'citas:read',
+                                'Agenda Integrada',
+                              );
+                              if (!allowed || !context.mounted) return;
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const AppointmentsScreen(),
+                                ),
+                              );
+                              if (context.mounted) {
+                                _loadPendingAppointmentRequests();
+                              }
+                            },
+                            width: cardWidth,
+                            badge: _pendingAppointmentRequests > 0
+                                ? '$_pendingAppointmentRequests nuevas'
+                                : 'MVP',
                           ),
                         );
                       }

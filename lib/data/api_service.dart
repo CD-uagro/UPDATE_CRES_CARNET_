@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'cache_service.dart';
 import 'auth_service.dart' as auth;
+import '../models/appointment_admin_model.dart';
 import '../models/ticket_admin_model.dart';
 import '../utils/sync_logger.dart';
 import '../utils/clinical_datetime.dart';
@@ -1333,6 +1334,96 @@ class ApiService {
     }
 
     throw Exception(_httpErrorMessage('consultar tickets', response));
+  }
+
+  static Future<List<AppointmentAdminModel>> getAppointments({
+    String? status,
+    String? area,
+    String? priority,
+    String? campus,
+    String? matricula,
+  }) async {
+    final token = await _requireOnlineToken('consultar citas');
+    final query = <String, String>{
+      if (_hasText(status)) 'status': status!.trim(),
+      if (_hasText(area)) 'area': area!.trim(),
+      if (_hasText(priority)) 'priority': priority!.trim(),
+      if (_hasText(campus)) 'campus': campus!.trim(),
+      if (_hasText(matricula)) 'matricula': matricula!.trim(),
+    };
+    final url =
+        Uri.parse('$baseUrl/appointments').replace(queryParameters: query);
+
+    final response = await http
+        .get(
+          url,
+          headers: _jsonAuthHeaders(token),
+        )
+        .timeout(_normalTimeout);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final items = data is List
+          ? data
+          : data is Map && data['data'] is List
+              ? data['data'] as List
+              : const [];
+      return items
+          .whereType<Map>()
+          .map((item) => AppointmentAdminModel.fromJson(
+                Map<String, dynamic>.from(item),
+              ))
+          .toList();
+    }
+
+    throw Exception(_httpErrorMessage('consultar citas', response));
+  }
+
+  static Future<AppointmentAdminModel> getAppointmentDetail(
+    String appointmentId,
+  ) async {
+    final token = await _requireOnlineToken('consultar detalle de cita');
+    final url = Uri.parse('$baseUrl/appointments/$appointmentId');
+
+    final response = await http
+        .get(
+          url,
+          headers: _jsonAuthHeaders(token),
+        )
+        .timeout(_normalTimeout);
+
+    if (response.statusCode == 200) {
+      return AppointmentAdminModel.fromJson(
+        Map<String, dynamic>.from(jsonDecode(response.body) as Map),
+      );
+    }
+
+    throw Exception(_httpErrorMessage('consultar detalle de cita', response));
+  }
+
+  static Future<AppointmentAdminModel> updateAppointmentAction({
+    required String appointmentId,
+    required String action,
+    Map<String, dynamic> payload = const {},
+  }) async {
+    final token = await _requireOnlineToken('actualizar cita');
+    final url = Uri.parse('$baseUrl/appointments/$appointmentId/$action');
+
+    final response = await http
+        .patch(
+          url,
+          headers: _jsonAuthHeaders(token),
+          body: jsonEncode(payload),
+        )
+        .timeout(_normalTimeout);
+
+    if (response.statusCode == 200) {
+      return AppointmentAdminModel.fromJson(
+        Map<String, dynamic>.from(jsonDecode(response.body) as Map),
+      );
+    }
+
+    throw Exception(_httpErrorMessage('actualizar cita', response));
   }
 
   static Future<TicketDetailModel> getTicketDetail(String ticketId) async {
