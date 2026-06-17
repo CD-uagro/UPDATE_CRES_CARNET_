@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../data/api_service.dart';
 import '../models/referral_admin_model.dart';
+import '../screens/referral_detail_screen.dart';
 import '../screens/new_referral_screen.dart';
 import '../ui/uagro_theme.dart';
 
@@ -108,6 +109,18 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
       MaterialPageRoute(builder: (_) => const NewReferralScreen()),
     );
     if (created == true && mounted) {
+      _loadReferrals();
+    }
+  }
+
+  Future<void> _openDetail(ReferralAdminModel referral) async {
+    if (referral.id.isEmpty) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => ReferralDetailScreen(referralId: referral.id),
+      ),
+    );
+    if (mounted) {
       _loadReferrals();
     }
   }
@@ -295,9 +308,12 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
                 DataColumn(label: Text('Area destino')),
                 DataColumn(label: Text('Prioridad')),
                 DataColumn(label: Text('Estado')),
+                DataColumn(label: Text('Acciones')),
               ],
               rows: _referrals.map((referral) {
                 return DataRow(
+                  onSelectChanged:
+                      referral.id.isEmpty ? null : (_) => _openDetail(referral),
                   cells: [
                     DataCell(Text(_formatDate(referral.createdAt))),
                     DataCell(
@@ -324,6 +340,15 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
                       _Chip(
                         label: _statusLabel(referral.status),
                         color: _statusColor(referral.status),
+                      ),
+                    ),
+                    DataCell(
+                      TextButton.icon(
+                        onPressed: referral.id.isEmpty
+                            ? null
+                            : () => _openDetail(referral),
+                        icon: const Icon(Icons.visibility_outlined, size: 18),
+                        label: const Text('Ver'),
                       ),
                     ),
                   ],

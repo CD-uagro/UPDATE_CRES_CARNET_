@@ -1446,6 +1446,28 @@ class ApiService {
     throw Exception(_httpErrorMessage('crear referencia', response));
   }
 
+  static Future<ReferralAdminModel> getReferralDetail(String referralId) async {
+    final token = await _requireOnlineToken('consultar detalle de referencia');
+    final url = Uri.parse('$baseUrl/referrals/$referralId');
+
+    final response = await http
+        .get(
+          url,
+          headers: _jsonAuthHeaders(token),
+        )
+        .timeout(_normalTimeout);
+
+    if (response.statusCode == 200) {
+      return ReferralAdminModel.fromJson(
+        Map<String, dynamic>.from(jsonDecode(response.body) as Map),
+      );
+    }
+
+    throw Exception(
+      _httpErrorMessage('consultar detalle de referencia', response),
+    );
+  }
+
   static Future<AppointmentAdminModel> getAppointmentDetail(
     String appointmentId,
   ) async {

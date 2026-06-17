@@ -5,6 +5,7 @@ class ReferralAdminModel {
   final ReferralDestinationModel destination;
   final String priority;
   final String reason;
+  final String observations;
   final String status;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -17,6 +18,7 @@ class ReferralAdminModel {
     required this.destination,
     required this.priority,
     required this.reason,
+    required this.observations,
     required this.status,
     required this.createdAt,
     required this.updatedAt,
@@ -41,6 +43,7 @@ class ReferralAdminModel {
       destination: ReferralDestinationModel.fromJson(destinationJson),
       priority: _readString(json, ['priority', 'prioridad'], fallback: 'media'),
       reason: _readString(json, ['reason', 'motivo']),
+      observations: _readString(json, ['observations', 'observaciones']),
       status: _readString(json, ['status', 'estado'], fallback: 'sent'),
       createdAt: _readDate(json, ['createdAt', 'created_at']),
       updatedAt: _readDate(json, ['updatedAt', 'updated_at']),
@@ -132,7 +135,9 @@ class ReferralStatusHistoryEntry {
   final String previousStatus;
   final String status;
   final String byUserId;
+  final String byUserName;
   final String byRole;
+  final String area;
   final String note;
   final DateTime? at;
 
@@ -140,7 +145,9 @@ class ReferralStatusHistoryEntry {
     required this.previousStatus,
     required this.status,
     required this.byUserId,
+    required this.byUserName,
     required this.byRole,
+    required this.area,
     required this.note,
     required this.at,
   });
@@ -151,7 +158,9 @@ class ReferralStatusHistoryEntry {
           _readString(json, ['previousStatus', 'previous_status', 'from']),
       status: _readString(json, ['status', 'to']),
       byUserId: _readString(json, ['byUserId', 'by_user_id', 'actor']),
+      byUserName: _readString(json, ['byUserName', 'by_user_name']),
       byRole: _readString(json, ['byRole', 'by_role', 'actor_role']),
+      area: _readString(json, ['area']),
       note: _readString(json, ['note', 'message']),
       at: _readDate(json, ['at', 'created_at', 'createdAt']),
     );
