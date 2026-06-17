@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../data/api_service.dart';
 import '../models/referral_admin_model.dart';
+import '../screens/new_referral_screen.dart';
 import '../ui/uagro_theme.dart';
 
 class ReferralsScreen extends StatefulWidget {
@@ -102,6 +103,15 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
     _loadReferrals();
   }
 
+  Future<void> _openNewReferral() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const NewReferralScreen()),
+    );
+    if (created == true && mounted) {
+      _loadReferrals();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -111,6 +121,15 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
         backgroundColor: UAGroColors.azulMarino,
         foregroundColor: Colors.white,
         actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: FilledButton.icon(
+              onPressed: _loading ? null : _openNewReferral,
+              icon: const Icon(Icons.add),
+              label: const Text('Nueva Referencia'),
+            ),
+          ),
+          const SizedBox(width: 8),
           IconButton(
             tooltip: 'Actualizar referencias',
             onPressed: _loading ? null : _loadReferrals,

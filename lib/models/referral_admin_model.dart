@@ -158,6 +158,44 @@ class ReferralStatusHistoryEntry {
   }
 }
 
+class ReferralCreateRequest {
+  final ReferralStudentModel student;
+  final String originArea;
+  final String destinationArea;
+  final String priority;
+  final String reason;
+  final String observations;
+
+  const ReferralCreateRequest({
+    required this.student,
+    required this.originArea,
+    required this.destinationArea,
+    required this.priority,
+    required this.reason,
+    required this.observations,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'student': {
+        'matricula': student.matricula,
+        'nombre': student.nombre,
+        if (student.correo.isNotEmpty) 'correo': student.correo,
+        if (student.programa.isNotEmpty) 'programa': student.programa,
+        if (student.campus.isNotEmpty) 'campus': student.campus,
+        if (student.unidadAcademica.isNotEmpty)
+          'unidadAcademica': student.unidadAcademica,
+      },
+      'originArea': originArea,
+      'destinationArea': destinationArea,
+      'priority': priority,
+      'reason': reason,
+      if (observations.isNotEmpty) 'observations': observations,
+      'send': true,
+    };
+  }
+}
+
 List<Map<String, dynamic>> _readList(dynamic value) {
   if (value is! List) return const [];
   return value
