@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../data/api_service.dart';
 import '../models/appointment_admin_model.dart';
 import '../ui/uagro_theme.dart';
+import '../widgets/appointment_schedule_dialog.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   final String? initialStatus;
@@ -191,7 +192,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     AppointmentAdminModel appointment,
     String action,
   ) async {
-    final payload = await _payloadForAction(action);
+    final payload = await _payloadForAction(appointment, action);
     if (payload == null) return;
 
     try {
@@ -214,7 +215,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     }
   }
 
-  Future<Map<String, dynamic>?> _payloadForAction(String action) async {
+  Future<Map<String, dynamic>?> _payloadForAction(
+    AppointmentAdminModel appointment,
+    String action,
+  ) async {
     if (action == 'attended' || action == 'no-show') {
       return const {};
     }
@@ -229,7 +233,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
     final schedule = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (_) => const _ScheduleDialog(),
+      builder: (_) => AppointmentScheduleDialog(
+        appointment: appointment,
+        action: action,
+      ),
     );
     if (schedule == null) return null;
     return schedule;
@@ -557,6 +564,41 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     return DateFormat('dd/MM/yyyy HH:mm').format(date.toLocal());
   }
 
+  static String _formatSchedule(String? startValue, String? endValue) {
+    final start = _parseDate(startValue);
+    if (start == null) return 'Pendiente';
+    final end = _parseDate(endValue);
+    final date = '${start.day} de ${_monthName(start.month)} de ${start.year}';
+    final startTime = DateFormat('HH:mm').format(start);
+    if (end == null) return '$date, $startTime';
+    final endTime = DateFormat('HH:mm').format(end);
+    return '$date, $startTime a $endTime';
+  }
+
+  static String _monthName(int month) {
+    const names = [
+      'enero',
+      'febrero',
+      'marzo',
+      'abril',
+      'mayo',
+      'junio',
+      'julio',
+      'agosto',
+      'septiembre',
+      'octubre',
+      'noviembre',
+      'diciembre',
+    ];
+    if (month < 1 || month > names.length) return '';
+    return names[month - 1];
+  }
+
+  static DateTime? _parseDate(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    return DateTime.tryParse(value)?.toLocal();
+  }
+
   static String _areaLabel(String value) =>
       _areas[value] ?? value.replaceAll('_', ' ');
   static String _statusLabel(String value) =>
@@ -632,7 +674,10 @@ class _AppointmentDetailDialog extends StatelessWidget {
                       '${appointment.preferredDate} / ${appointment.preferredTimeBlock}'),
               _InfoRow(
                   label: 'Programada',
-                  value: appointment.scheduledStart ?? 'Pendiente'),
+                  value: _AppointmentsScreenState._formatSchedule(
+                    appointment.scheduledStart,
+                    appointment.scheduledEnd,
+                  )),
               const SizedBox(height: 12),
               const Text('Historial',
                   style: TextStyle(fontWeight: FontWeight.w900)),
@@ -681,88 +726,6 @@ class _AppointmentDetailDialog extends StatelessWidget {
             child: const Text('Reprogramar'),
           ),
         ],
-      ],
-    );
-  }
-}
-
-class _ScheduleDialog extends StatefulWidget {
-  const _ScheduleDialog();
-
-  @override
-  State<_ScheduleDialog> createState() => _ScheduleDialogState();
-}
-
-class _ScheduleDialogState extends State<_ScheduleDialog> {
-  final _startController = TextEditingController();
-  final _endController = TextEditingController();
-  final _assignedController = TextEditingController();
-  final _messageController = TextEditingController();
-
-  @override
-  void dispose() {
-    _startController.dispose();
-    _endController.dispose();
-    _assignedController.dispose();
-    _messageController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Programar cita'),
-      content: SizedBox(
-        width: 460,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _startController,
-              decoration: const InputDecoration(
-                labelText: 'Inicio ISO UTC',
-                hintText: '2026-06-20T15:00:00Z',
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _endController,
-              decoration: const InputDecoration(
-                labelText: 'Fin ISO UTC',
-                hintText: '2026-06-20T15:30:00Z',
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _assignedController,
-              decoration: const InputDecoration(labelText: 'Asignado a'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _messageController,
-              decoration: const InputDecoration(labelText: 'Mensaje opcional'),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, {
-            'scheduled_start': _startController.text.trim(),
-            'scheduled_end': _endController.text.trim(),
-            if (_assignedController.text.trim().isNotEmpty)
-              'assigned_to': _assignedController.text.trim(),
-            if (_messageController.text.trim().isNotEmpty)
-              'message': _messageController.text.trim(),
-            if (_messageController.text.trim().isNotEmpty)
-              'reschedule_reason': _messageController.text.trim(),
-          }),
-          child: const Text('Guardar'),
-        ),
       ],
     );
   }
