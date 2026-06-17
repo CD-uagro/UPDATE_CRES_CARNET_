@@ -1,20 +1,20 @@
 {
-  "version": "2.6.2",
-  "buildNumber": 42,
+  "version": "2.6.3",
+  "buildNumber": 43,
   "releaseDate": "2026-06-17",
   "channel": "development",
   "minimumVersion": "2.0.0",
   "artifact": {
     "type": "exe",
-    "fileName": "CRES_Carnets_Setup_v2.6.2.exe",
-    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.6.2/CRES_Carnets_Setup_v2.6.2.exe",
-    "sha256": "AFAF9BDE87A4CF71E839E04D5AFA07F8F94FD5C6DFE8C874CD6CDBEED9B42E1A",
-    "fileSize": 13986552
+    "fileName": "CRES_Carnets_Setup_v2.6.3.exe",
+    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.6.3/CRES_Carnets_Setup_v2.6.3.exe",
+    "sha256": "2B51BBFB594354A1272ABF9DC3DFD52A4EF3EA577D78532C1983CB6B3EC06659",
+    "fileSize": 13990958
   },
   "changelog": [
-    "Agrega Agenda Integrada para solicitudes universitarias.",
-    "Permite gestionar citas solicitadas desde Carnet Digital.",
-    "Integra Carnet Digital, backend Node, FastAPI, Cosmos DB y SASU Windows.",
-    "Mantiene correcciones de sincronizacion de notas incluidas en 2.6.1."
+    "Agrega notificacion emergente tipo Messenger para nuevas solicitudes de cita.",
+    "Permite abrir Agenda Integrada desde la alerta visual.",
+    "Evita repetir la misma cita notificada durante la sesion.",
+    "Mantiene Agenda Integrada publicada en SASU 2.6.2."
   ]
 }
