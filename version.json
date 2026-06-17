@@ -1,21 +1,20 @@
 {
-  "version": "2.6.0",
-  "buildNumber": 40,
+  "version": "2.6.1",
+  "buildNumber": 41,
   "releaseDate": "2026-06-16",
   "channel": "development",
   "minimumVersion": "2.0.0",
   "artifact": {
     "type": "exe",
-    "fileName": "CRES_Carnets_Setup_v2.6.0.exe",
-    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.6.0/CRES_Carnets_Setup_v2.6.0.exe",
-    "sha256": "8B574E415DC528A2BDEC141903C85D036CD1A7AEAE450939D802083F9B585BC5",
-    "fileSize": 13969970
+    "fileName": "CRES_Carnets_Setup_v2.6.1.exe",
+    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.6.1/CRES_Carnets_Setup_v2.6.1.exe",
+    "sha256": "0D6FE105CA9324CB3D8FE9C78F3C4D1457E6DCBFF010DC59B26BCE28321DFCD8",
+    "fileSize": 13972922
   },
   "changelog": [
-    "Inicio de Chat/Ticket Institucional SASU.",
-    "Preparacion de notificaciones push.",
-    "Preparacion de recuperacion de contrasena.",
-    "Preparacion de seguimiento integrado.",
-    "Preparacion de videollamadas institucionales."
+    "Corrige fallo de migracion SQLite parcial.",
+    "Restaura carga de notas locales y Cosmos en Expedientes.",
+    "Aisla errores local/nube para evitar que una fuente bloquee la otra.",
+    "Corrige compatibilidad con respuesta Cosmos { value: [...] }."
   ]
 }
