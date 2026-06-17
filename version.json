@@ -1,20 +1,20 @@
 {
-  "version": "2.6.3",
-  "buildNumber": 43,
+  "version": "2.6.4",
+  "buildNumber": 44,
   "releaseDate": "2026-06-17",
   "channel": "development",
   "minimumVersion": "2.0.0",
   "artifact": {
     "type": "exe",
-    "fileName": "CRES_Carnets_Setup_v2.6.3.exe",
-    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.6.3/CRES_Carnets_Setup_v2.6.3.exe",
-    "sha256": "2B51BBFB594354A1272ABF9DC3DFD52A4EF3EA577D78532C1983CB6B3EC06659",
-    "fileSize": 13990958
+    "fileName": "CRES_Carnets_Setup_v2.6.4.exe",
+    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.6.4/CRES_Carnets_Setup_v2.6.4.exe",
+    "sha256": "843C533CF857E9E2408648F592351C01B4C4D5AE8E47528243642050A71FD72E",
+    "fileSize": 14000322
   },
   "changelog": [
-    "Agrega notificacion emergente tipo Messenger para nuevas solicitudes de cita.",
-    "Permite abrir Agenda Integrada desde la alerta visual.",
-    "Evita repetir la misma cita notificada durante la sesion.",
-    "Mantiene Agenda Integrada publicada en SASU 2.6.2."
+    "Mejora la UX para confirmar y reprogramar citas.",
+    "Reemplaza campos ISO UTC por selector de fecha, hora y duracion.",
+    "Convierte internamente la programacion a ISO UTC compatible con FastAPI.",
+    "Muestra la fecha programada en lenguaje humano en el detalle de cita."
   ]
 }
