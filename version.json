@@ -1,20 +1,20 @@
 {
-  "version": "2.6.4",
-  "buildNumber": 44,
+  "version": "2.6.5",
+  "buildNumber": 45,
   "releaseDate": "2026-06-17",
   "channel": "development",
   "minimumVersion": "2.0.0",
   "artifact": {
     "type": "exe",
-    "fileName": "CRES_Carnets_Setup_v2.6.4.exe",
-    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.6.4/CRES_Carnets_Setup_v2.6.4.exe",
-    "sha256": "843C533CF857E9E2408648F592351C01B4C4D5AE8E47528243642050A71FD72E",
-    "fileSize": 14000322
+    "fileName": "CRES_Carnets_Setup_v2.6.5.exe",
+    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.6.5/CRES_Carnets_Setup_v2.6.5.exe",
+    "sha256": "20A5FA06258711BA894470EBC6C82C91FF739A295DDCBEA966EA8301EC69FDEC",
+    "fileSize": 14003468
   },
   "changelog": [
-    "Mejora la UX para confirmar y reprogramar citas.",
-    "Reemplaza campos ISO UTC por selector de fecha, hora y duracion.",
-    "Convierte internamente la programacion a ISO UTC compatible con FastAPI.",
-    "Muestra la fecha programada en lenguaje humano en el detalle de cita."
+    "Agrega recordatorio horario de solicitudes de cita pendientes.",
+    "Muestra alerta acumulada si hay citas requested por confirmar o reprogramar.",
+    "Abre Agenda Integrada con filtro de solicitudes pendientes desde el recordatorio.",
+    "Mantiene toast de nueva solicitud y UX de programacion de citas."
   ]
 }
