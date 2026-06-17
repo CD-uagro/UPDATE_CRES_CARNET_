@@ -8,7 +8,14 @@ import '../models/appointment_admin_model.dart';
 import '../ui/uagro_theme.dart';
 
 class AppointmentsScreen extends StatefulWidget {
-  const AppointmentsScreen({super.key});
+  final String? initialStatus;
+  final String? initialAppointmentId;
+
+  const AppointmentsScreen({
+    super.key,
+    this.initialStatus,
+    this.initialAppointmentId,
+  });
 
   @override
   State<AppointmentsScreen> createState() => _AppointmentsScreenState();
@@ -46,10 +53,12 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   List<AppointmentAdminModel> _appointments = [];
   Timer? _refreshTimer;
   int _lastNotifiedPending = -1;
+  bool _openedInitialAppointment = false;
 
   @override
   void initState() {
     super.initState();
+    _status = widget.initialStatus ?? '';
     _loadAppointments();
     _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       if (!_loading && mounted) {
@@ -88,6 +97,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         _loading = false;
       });
       _notifyPendingRequests(appointments);
+      _openInitialAppointmentIfNeeded(appointments);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -120,6 +130,31 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         duration: const Duration(seconds: 4),
       ),
     );
+  }
+
+  void _openInitialAppointmentIfNeeded(
+    List<AppointmentAdminModel> appointments,
+  ) {
+    if (_openedInitialAppointment || widget.initialAppointmentId == null) {
+      return;
+    }
+    final appointmentId = widget.initialAppointmentId!;
+    AppointmentAdminModel? appointment;
+    for (final item in appointments) {
+      if (item.id == appointmentId) {
+        appointment = item;
+        break;
+      }
+    }
+    if (appointment == null) return;
+
+    _openedInitialAppointment = true;
+    final appointmentToOpen = appointment;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _openDetail(appointmentToOpen);
+      }
+    });
   }
 
   void _clearFilters() {

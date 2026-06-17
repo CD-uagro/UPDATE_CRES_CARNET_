@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cres_carnets_ibmcloud/screens/form_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/nueva_nota_screen.dart';
@@ -17,8 +19,10 @@ import 'package:cres_carnets_ibmcloud/data/db.dart' as app_db;
 import 'package:cres_carnets_ibmcloud/data/api_service.dart';
 import 'package:cres_carnets_ibmcloud/data/auth_service.dart';
 import 'package:cres_carnets_ibmcloud/data/sync_service.dart';
+import 'package:cres_carnets_ibmcloud/models/appointment_admin_model.dart';
 import 'package:cres_carnets_ibmcloud/services/version_service.dart';
 import 'package:cres_carnets_ibmcloud/services/update_manager.dart';
+import 'package:cres_carnets_ibmcloud/widgets/appointment_toast.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Dashboard principal después del login
@@ -48,6 +52,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _canViewTickets = false;
   bool _canViewAppointments = false;
   int _pendingAppointmentRequests = 0;
+  bool _pollingAppointments = false;
+  Timer? _appointmentPollingTimer;
+  final Set<String> _notifiedAppointmentIds = <String>{};
+  final List<AppointmentAdminModel> _appointmentToasts = [];
+  final Map<String, Timer> _appointmentToastTimers = {};
 
   // Manejador de actualizaciones
   UpdateManager? _updateManager;
@@ -93,6 +102,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
+    _appointmentPollingTimer?.cancel();
+    for (final timer in _appointmentToastTimers.values) {
+      timer.cancel();
+    }
     _updateManager?.dispose();
     super.dispose();
   }
@@ -127,11 +140,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
       });
     }
     if (canAppointments) {
-      _loadPendingAppointmentRequests();
+      _startAppointmentPolling();
+    } else {
+      _stopAppointmentPolling();
     }
   }
 
   Future<void> _loadPendingAppointmentRequests() async {
+    await _pollAppointmentRequests(showToasts: false);
+  }
+
+  void _startAppointmentPolling() {
+    _appointmentPollingTimer?.cancel();
+    _pollAppointmentRequests();
+    _appointmentPollingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      _pollAppointmentRequests();
+    });
+  }
+
+  void _stopAppointmentPolling() {
+    _appointmentPollingTimer?.cancel();
+    _appointmentPollingTimer = null;
+  }
+
+  Future<void> _pollAppointmentRequests({bool showToasts = true}) async {
+    if (_pollingAppointments) return;
+    _pollingAppointments = true;
     try {
       final appointments =
           await ApiService.getAppointments(status: 'requested');
@@ -139,8 +173,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() {
         _pendingAppointmentRequests = appointments.length;
       });
+      if (showToasts) {
+        _showNewAppointmentToasts(appointments);
+      }
     } catch (e) {
       debugPrint('No se pudo cargar contador de citas pendientes: $e');
+    } finally {
+      _pollingAppointments = false;
+    }
+  }
+
+  void _showNewAppointmentToasts(List<AppointmentAdminModel> appointments) {
+    final requested = appointments
+        .where(
+          (appointment) =>
+              appointment.status == 'requested' &&
+              !_notifiedAppointmentIds.contains(appointment.id),
+        )
+        .toList()
+      ..sort((a, b) {
+        final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bDate.compareTo(aDate);
+      });
+
+    for (final appointment in requested) {
+      if (_appointmentToasts.length >= 3) break;
+      if (_appointmentToasts.any((item) => item.id == appointment.id)) {
+        continue;
+      }
+      _notifiedAppointmentIds.add(appointment.id);
+      setState(() {
+        _appointmentToasts.add(appointment);
+      });
+      _appointmentToastTimers[appointment.id] =
+          Timer(const Duration(seconds: 10), () {
+        _dismissAppointmentToast(appointment.id);
+      });
+    }
+  }
+
+  void _dismissAppointmentToast(String appointmentId) {
+    _appointmentToastTimers.remove(appointmentId)?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _appointmentToasts.removeWhere((item) => item.id == appointmentId);
+    });
+  }
+
+  Future<void> _openAppointmentFromToast(
+    AppointmentAdminModel appointment,
+  ) async {
+    _dismissAppointmentToast(appointment.id);
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AppointmentsScreen(
+          initialStatus: 'requested',
+          initialAppointmentId: appointment.id,
+        ),
+      ),
+    );
+    if (mounted) {
+      _loadPendingAppointmentRequests();
     }
   }
 
@@ -566,284 +660,318 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ? AuthService.formatCampusName(_currentUser!.campus)
         : 'Campus pendiente';
 
-    return Scaffold(
-      backgroundColor: UAGroColors.grisClaro,
-      appBar: AppBar(
-        title: _loadingUser
-            ? Text(isMobile ? 'CRES' : 'CRES Carnets - UAGro')
-            : isMobile
-                ? const Text('CRES') // Solo nombre corto en móvil
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'CRES Carnets - UAGro',
-                        style: TextStyle(fontSize: 16),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: UAGroColors.grisClaro,
+          appBar: AppBar(
+            title: _loadingUser
+                ? Text(isMobile ? 'CRES' : 'CRES Carnets - UAGro')
+                : isMobile
+                    ? const Text('CRES') // Solo nombre corto en móvil
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'CRES Carnets - UAGro',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          if (_currentUser != null)
+                            Text(
+                              '${AuthService.formatRoleName(_currentUser!.rol)} - ${AuthService.formatCampusName(_currentUser!.campus)}',
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.normal),
+                            ),
+                        ],
                       ),
-                      if (_currentUser != null)
-                        Text(
-                          '${AuthService.formatRoleName(_currentUser!.rol)} - ${AuthService.formatCampusName(_currentUser!.campus)}',
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.normal),
+            backgroundColor: UAGroColors.azulMarino,
+            elevation: 0,
+            centerTitle: false,
+            actions: isMobile
+                ? _buildMobileActions(context) // Acciones compactas para móvil
+                : _buildDesktopActions(
+                    context), // Todas las acciones para desktop
+          ),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1180),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _InstitutionalHeader(
+                        userName: userName,
+                        campusName: campusName,
+                        versionFuture: _getVersionString(),
+                      ),
+                      const SizedBox(height: 16),
+                      _StatusStrip(
+                        onSync: _handleSyncPendingData,
+                        onUpdates: () {
+                          if (_updateManager != null) {
+                            _updateManager!.checkForUpdatesManual(context);
+                          }
+                        },
+                      ),
+                      if (_currentUser != null) ...[
+                        const SizedBox(height: 18),
+                        RecentActivityPanel(
+                          user: _currentUser!,
+                          onOpenPatient: (matricula) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => NuevaNotaScreen(
+                                  db: widget.db,
+                                  matriculaInicial: matricula,
+                                ),
+                              ),
+                            );
+                          },
+                          onOpenNote: (matricula) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => NuevaNotaScreen(
+                                  db: widget.db,
+                                  matriculaInicial: matricula,
+                                ),
+                              ),
+                            );
+                          },
                         ),
+                      ],
+                      const SizedBox(height: 18),
+                      _SectionHeader(
+                        title: 'Centro de Servicios Universitarios',
+                        subtitle: 'SASU 2.5 - Universidad Autónoma de Guerrero',
+                      ),
+                      const SizedBox(height: 12),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final visibleOptions = <Widget>[];
+                          final maxWidth = constraints.maxWidth;
+                          final columns = maxWidth >= 980
+                              ? 4
+                              : maxWidth >= 640
+                                  ? 2
+                                  : 1;
+                          final spacing = 14.0;
+                          final cardWidth =
+                              (maxWidth - (spacing * (columns - 1))) / columns;
+
+                          if (_canCreateCarnet) {
+                            visibleOptions.add(
+                              _DashboardCard(
+                                icon: Icons.badge_outlined,
+                                title: 'Crear Carnet',
+                                description: 'Registro estudiantil',
+                                color: UAGroColors.azulMarino,
+                                onTap: () async {
+                                  final allowed = await _checkPermission(
+                                    'carnets:write',
+                                    'Crear Carnet',
+                                  );
+                                  if (!allowed || !context.mounted) return;
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => FormScreen(db: widget.db),
+                                    ),
+                                  );
+                                },
+                                width: cardWidth,
+                              ),
+                            );
+                          }
+
+                          if (_canManageExpedientes) {
+                            visibleOptions.add(
+                              _DashboardCard(
+                                icon: Icons.folder_open,
+                                title: 'Administrar Expedientes',
+                                description: 'Notas y expedientes médicos',
+                                color: UAGroColors.rojoEscudo,
+                                onTap: () async {
+                                  final allowed = await _checkPermission(
+                                    'notas:write',
+                                    'Administrar Expedientes',
+                                  );
+                                  if (!allowed || !context.mounted) return;
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          NuevaNotaScreen(db: widget.db),
+                                    ),
+                                  );
+                                },
+                                width: cardWidth,
+                              ),
+                            );
+                          }
+
+                          if (_canViewPromocion) {
+                            visibleOptions.add(
+                              _DashboardCard(
+                                icon: Icons.campaign,
+                                title: 'Promoción de Salud',
+                                description: 'Campañas universitarias',
+                                color: Colors.green[700]!,
+                                onTap: () async {
+                                  final allowed = await _checkPermission(
+                                    'promociones:read',
+                                    'Promoción de Salud',
+                                  );
+                                  if (!allowed || !context.mounted) return;
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          PromocionSaludScreen(db: widget.db),
+                                    ),
+                                  );
+                                },
+                                width: cardWidth,
+                              ),
+                            );
+                          }
+
+                          if (_canViewVacunacion) {
+                            visibleOptions.add(
+                              _DashboardCard(
+                                icon: Icons.vaccines,
+                                title: 'Vacunación',
+                                description: 'Registro y campañas',
+                                color: Colors.purple[700]!,
+                                onTap: () async {
+                                  final allowed = await _checkPermission(
+                                    'vacunacion:read',
+                                    'Vacunación',
+                                  );
+                                  if (!allowed || !context.mounted) return;
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const VaccinationScreen(),
+                                    ),
+                                  );
+                                },
+                                width: cardWidth,
+                                badge: 'NUEVO',
+                              ),
+                            );
+                          }
+
+                          if (_canViewTickets) {
+                            visibleOptions.add(
+                              _DashboardCard(
+                                icon: Icons.support_agent_outlined,
+                                title: 'Centro de Atencion',
+                                description: 'Bandeja y seguimiento de tickets',
+                                color: Colors.teal[700]!,
+                                onTap: () async {
+                                  final allowed = await _checkPermission(
+                                    'tickets:read',
+                                    'Centro de Atencion',
+                                  );
+                                  if (!allowed || !context.mounted) return;
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const TicketsScreen(),
+                                    ),
+                                  );
+                                },
+                                width: cardWidth,
+                                badge: '2.6',
+                              ),
+                            );
+                          }
+
+                          if (_canViewAppointments) {
+                            visibleOptions.add(
+                              _DashboardCard(
+                                icon: Icons.event_available_outlined,
+                                title: 'Agenda Integrada',
+                                description: 'Solicitudes de cita del alumnado',
+                                color: Colors.blue[700]!,
+                                onTap: () async {
+                                  final allowed = await _checkPermission(
+                                    'citas:read',
+                                    'Agenda Integrada',
+                                  );
+                                  if (!allowed || !context.mounted) return;
+                                  await Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const AppointmentsScreen(),
+                                    ),
+                                  );
+                                  if (context.mounted) {
+                                    _loadPendingAppointmentRequests();
+                                  }
+                                },
+                                width: cardWidth,
+                                badge: _pendingAppointmentRequests > 0
+                                    ? '$_pendingAppointmentRequests nuevas'
+                                    : 'MVP',
+                              ),
+                            );
+                          }
+
+                          if (visibleOptions.isEmpty) {
+                            return const _EmptyPermissionsPanel();
+                          }
+
+                          return Wrap(
+                            spacing: spacing,
+                            runSpacing: spacing,
+                            children: visibleOptions,
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 18),
+                      _ObservatoryCard(onTap: _openObservatory),
+                      const SizedBox(height: 18),
+                      Text(
+                        'Dirección de Innovación en la Gestión de la Salud Universitaria',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: UAGroColors.azulMarino.withValues(alpha: 0.68),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
-        backgroundColor: UAGroColors.azulMarino,
-        elevation: 0,
-        centerTitle: false,
-        actions: isMobile
-            ? _buildMobileActions(context) // Acciones compactas para móvil
-            : _buildDesktopActions(context), // Todas las acciones para desktop
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1180),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _InstitutionalHeader(
-                    userName: userName,
-                    campusName: campusName,
-                    versionFuture: _getVersionString(),
-                  ),
-                  const SizedBox(height: 16),
-                  _StatusStrip(
-                    onSync: _handleSyncPendingData,
-                    onUpdates: () {
-                      if (_updateManager != null) {
-                        _updateManager!.checkForUpdatesManual(context);
-                      }
-                    },
-                  ),
-                  if (_currentUser != null) ...[
-                    const SizedBox(height: 18),
-                    RecentActivityPanel(
-                      user: _currentUser!,
-                      onOpenPatient: (matricula) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => NuevaNotaScreen(
-                              db: widget.db,
-                              matriculaInicial: matricula,
-                            ),
-                          ),
-                        );
-                      },
-                      onOpenNote: (matricula) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => NuevaNotaScreen(
-                              db: widget.db,
-                              matriculaInicial: matricula,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  _SectionHeader(
-                    title: 'Centro de Servicios Universitarios',
-                    subtitle: 'SASU 2.5 - Universidad Autónoma de Guerrero',
-                  ),
-                  const SizedBox(height: 12),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final visibleOptions = <Widget>[];
-                      final maxWidth = constraints.maxWidth;
-                      final columns = maxWidth >= 980
-                          ? 4
-                          : maxWidth >= 640
-                              ? 2
-                              : 1;
-                      final spacing = 14.0;
-                      final cardWidth =
-                          (maxWidth - (spacing * (columns - 1))) / columns;
-
-                      if (_canCreateCarnet) {
-                        visibleOptions.add(
-                          _DashboardCard(
-                            icon: Icons.badge_outlined,
-                            title: 'Crear Carnet',
-                            description: 'Registro estudiantil',
-                            color: UAGroColors.azulMarino,
-                            onTap: () async {
-                              final allowed = await _checkPermission(
-                                'carnets:write',
-                                'Crear Carnet',
-                              );
-                              if (!allowed || !context.mounted) return;
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => FormScreen(db: widget.db),
-                                ),
-                              );
-                            },
-                            width: cardWidth,
-                          ),
-                        );
-                      }
-
-                      if (_canManageExpedientes) {
-                        visibleOptions.add(
-                          _DashboardCard(
-                            icon: Icons.folder_open,
-                            title: 'Administrar Expedientes',
-                            description: 'Notas y expedientes médicos',
-                            color: UAGroColors.rojoEscudo,
-                            onTap: () async {
-                              final allowed = await _checkPermission(
-                                'notas:write',
-                                'Administrar Expedientes',
-                              );
-                              if (!allowed || !context.mounted) return;
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      NuevaNotaScreen(db: widget.db),
-                                ),
-                              );
-                            },
-                            width: cardWidth,
-                          ),
-                        );
-                      }
-
-                      if (_canViewPromocion) {
-                        visibleOptions.add(
-                          _DashboardCard(
-                            icon: Icons.campaign,
-                            title: 'Promoción de Salud',
-                            description: 'Campañas universitarias',
-                            color: Colors.green[700]!,
-                            onTap: () async {
-                              final allowed = await _checkPermission(
-                                'promociones:read',
-                                'Promoción de Salud',
-                              );
-                              if (!allowed || !context.mounted) return;
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      PromocionSaludScreen(db: widget.db),
-                                ),
-                              );
-                            },
-                            width: cardWidth,
-                          ),
-                        );
-                      }
-
-                      if (_canViewVacunacion) {
-                        visibleOptions.add(
-                          _DashboardCard(
-                            icon: Icons.vaccines,
-                            title: 'Vacunación',
-                            description: 'Registro y campañas',
-                            color: Colors.purple[700]!,
-                            onTap: () async {
-                              final allowed = await _checkPermission(
-                                'vacunacion:read',
-                                'Vacunación',
-                              );
-                              if (!allowed || !context.mounted) return;
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const VaccinationScreen(),
-                                ),
-                              );
-                            },
-                            width: cardWidth,
-                            badge: 'NUEVO',
-                          ),
-                        );
-                      }
-
-                      if (_canViewTickets) {
-                        visibleOptions.add(
-                          _DashboardCard(
-                            icon: Icons.support_agent_outlined,
-                            title: 'Centro de Atencion',
-                            description: 'Bandeja y seguimiento de tickets',
-                            color: Colors.teal[700]!,
-                            onTap: () async {
-                              final allowed = await _checkPermission(
-                                'tickets:read',
-                                'Centro de Atencion',
-                              );
-                              if (!allowed || !context.mounted) return;
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const TicketsScreen(),
-                                ),
-                              );
-                            },
-                            width: cardWidth,
-                            badge: '2.6',
-                          ),
-                        );
-                      }
-
-                      if (_canViewAppointments) {
-                        visibleOptions.add(
-                          _DashboardCard(
-                            icon: Icons.event_available_outlined,
-                            title: 'Agenda Integrada',
-                            description: 'Solicitudes de cita del alumnado',
-                            color: Colors.blue[700]!,
-                            onTap: () async {
-                              final allowed = await _checkPermission(
-                                'citas:read',
-                                'Agenda Integrada',
-                              );
-                              if (!allowed || !context.mounted) return;
-                              await Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const AppointmentsScreen(),
-                                ),
-                              );
-                              if (context.mounted) {
-                                _loadPendingAppointmentRequests();
-                              }
-                            },
-                            width: cardWidth,
-                            badge: _pendingAppointmentRequests > 0
-                                ? '$_pendingAppointmentRequests nuevas'
-                                : 'MVP',
-                          ),
-                        );
-                      }
-
-                      if (visibleOptions.isEmpty) {
-                        return const _EmptyPermissionsPanel();
-                      }
-
-                      return Wrap(
-                        spacing: spacing,
-                        runSpacing: spacing,
-                        children: visibleOptions,
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  _ObservatoryCard(onTap: _openObservatory),
-                  const SizedBox(height: 18),
-                  Text(
-                    'Dirección de Innovación en la Gestión de la Salud Universitaria',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: UAGroColors.azulMarino.withValues(alpha: 0.68),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
+          ),
+        ),
+        _buildAppointmentToastStack(),
+      ],
+    );
+  }
+
+  Widget _buildAppointmentToastStack() {
+    if (_appointmentToasts.isEmpty) return const SizedBox.shrink();
+    return Positioned(
+      right: 22,
+      bottom: 22,
+      child: SafeArea(
+        child: IgnorePointer(
+          ignoring: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: _appointmentToasts.reversed.map((appointment) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: AppointmentToast(
+                  appointment: appointment,
+                  onClose: () => _dismissAppointmentToast(appointment.id),
+                  onView: () => _openAppointmentFromToast(appointment),
+                ),
+              );
+            }).toList(),
           ),
         ),
       ),
