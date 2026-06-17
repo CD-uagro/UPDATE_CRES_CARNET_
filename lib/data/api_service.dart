@@ -642,22 +642,26 @@ class ApiService {
       var cached = await CacheService.getNotas(matricula);
       if (cached != null) {
         cached = _normalizeNotasData(cached);
-        await CacheService.saveNotas(matricula, cached);
-        print('⚡ Notas obtenidas del caché (instantáneo)');
-        return cached;
+        if (cached.isNotEmpty) {
+          await CacheService.saveNotas(matricula, cached);
+          return cached;
+        }
       }
 
       final url = Uri.parse('$baseUrl/notas/$matricula');
-      print('Consultando notas en: $url');
       final resp = await http.get(url).timeout(_normalTimeout);
-      print('Status: ${resp.statusCode}');
-      print('Body: ${resp.body}');
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
-        if (data is List) {
-          print('Notas decodificadas: $data');
+        final rawNotes = data is List
+            ? data
+            : data is Map && data['value'] is List
+                ? data['value'] as List
+                : data is Map && data['items'] is List
+                    ? data['items'] as List
+                    : null;
+        if (rawNotes != null) {
           final notas = _normalizeNotasData(
-            data.map<Map<String, dynamic>>(
+            rawNotes.map<Map<String, dynamic>>(
               (e) => Map<String, dynamic>.from(e),
             ),
           );
@@ -667,14 +671,14 @@ class ApiService {
 
           return notas;
         } else {
-          print('La respuesta de la API no es una lista');
+          print('[NOTES] Unexpected notes API response format');
         }
       } else {
-        print('Error al consultar notas: Status ${resp.statusCode}');
+        print('[NOTES] Error querying notes: HTTP ${resp.statusCode}');
       }
       return [];
     } catch (e) {
-      print('Error en getNotasForMatricula: $e');
+      print('[NOTES] Error loading cloud notes: $e');
       return [];
     }
   }

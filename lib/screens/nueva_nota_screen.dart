@@ -748,16 +748,20 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
       // Detectar si es búsqueda por matrícula (numérico) o nombre (texto)
       final esMatricula =
           forceMatricula || RegExp(r'^\d+$').hasMatch(searchText);
+      final sourceErrors = <String>[];
 
       // 🚀 OPTIMIZACIÓN: Ejecutar llamadas en paralelo con Future.wait
       final results = await Future.wait([
         // Llamada a la API (nube) - solo para matrícula
         (() async {
           if (esMatricula) {
-            return ApiService.getNotasForMatricula(searchText).catchError((e) {
-              _error = 'Nube (notas): $e';
+            try {
+              return ApiService.getNotasForMatricula(searchText);
+            } catch (e, st) {
+              print('[NOTES] cloud notes error: $e\n$st');
+              sourceErrors.add('Nube (notas): $e');
               return <Map<String, dynamic>>[];
-            });
+            }
           } else {
             // Búsqueda por nombre: solo local (nube requiere matrícula)
             return <Map<String, dynamic>>[];
@@ -765,62 +769,79 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
         })(),
         // Query expediente local - buscar por matrícula o nombre
         (() async {
-          if (esMatricula) {
-            final qExp = widget.db.select(widget.db.healthRecords)
-              ..where((t) => t.matricula.equals(searchText))
-              ..orderBy([
-                (t) => OrderingTerm(
-                    expression: t.timestamp, mode: OrderingMode.desc),
-              ])
-              ..limit(1);
-            final expList = await qExp.get();
-            return expList.isNotEmpty ? expList.first : null;
-          } else {
-            // Buscar por nombre - obtener todos y filtrar en memoria
-            final qExp = widget.db.select(widget.db.healthRecords)
-              ..orderBy([
-                (t) => OrderingTerm(
-                    expression: t.timestamp, mode: OrderingMode.desc),
-              ]);
-            final allExp = await qExp.get();
-            final searchLower = searchText.toLowerCase();
-            final matched = allExp
-                .where((exp) =>
-                    exp.nombreCompleto.toLowerCase().contains(searchLower))
-                .toList();
-            return matched.isNotEmpty ? matched.first : null;
+          try {
+            DB.HealthRecord? result;
+            if (esMatricula) {
+              final qExp = widget.db.select(widget.db.healthRecords)
+                ..where((t) => t.matricula.equals(searchText))
+                ..orderBy([
+                  (t) => OrderingTerm(
+                      expression: t.timestamp, mode: OrderingMode.desc),
+                ])
+                ..limit(1);
+              final expList = await qExp.get();
+              result = expList.isNotEmpty ? expList.first : null;
+            } else {
+              // Buscar por nombre - obtener todos y filtrar en memoria
+              final qExp = widget.db.select(widget.db.healthRecords)
+                ..orderBy([
+                  (t) => OrderingTerm(
+                      expression: t.timestamp, mode: OrderingMode.desc),
+                ]);
+              final allExp = await qExp.get();
+              final searchLower = searchText.toLowerCase();
+              final matched = allExp
+                  .where((exp) =>
+                      exp.nombreCompleto.toLowerCase().contains(searchLower))
+                  .toList();
+              result = matched.isNotEmpty ? matched.first : null;
+            }
+
+            return result;
+          } catch (e, st) {
+            print('[BUSQUEDA] local expediente error: $e\n$st');
+            sourceErrors.add('Local (expediente): $e');
+            return null;
           }
         })(),
         // Query notas locales - buscar por matrícula del expediente encontrado
         (() async {
-          if (esMatricula) {
-            final qNotas = widget.db.select(widget.db.notes)
-              ..where((t) => t.matricula.equals(searchText))
-              ..orderBy([
-                (t) => OrderingTerm(
-                    expression: t.createdAt, mode: OrderingMode.desc),
-              ]);
-            return await qNotas.get();
-          } else {
-            // Primero buscar expediente por nombre - obtener todos y filtrar
-            final qExp = widget.db.select(widget.db.healthRecords).get();
-            final allExp = await qExp;
-            final searchLower = searchText.toLowerCase();
-            final matched = allExp
-                .where((exp) =>
-                    exp.nombreCompleto.toLowerCase().contains(searchLower))
-                .toList();
+          try {
+            if (esMatricula) {
+              final qNotas = widget.db.select(widget.db.notes)
+                ..where((t) => t.matricula.equals(searchText))
+                ..orderBy([
+                  (t) => OrderingTerm(
+                      expression: t.createdAt, mode: OrderingMode.desc),
+                ]);
+              return qNotas.get();
+            } else {
+              // Primero buscar expediente por nombre - obtener todos y filtrar
+              final qExp = widget.db.select(widget.db.healthRecords).get();
+              final allExp = await qExp;
+              final searchLower = searchText.toLowerCase();
+              final matched = allExp
+                  .where((exp) =>
+                      exp.nombreCompleto.toLowerCase().contains(searchLower))
+                  .toList();
 
-            if (matched.isEmpty) return <DB.Note>[];
+              if (matched.isEmpty) {
+                return <DB.Note>[];
+              }
 
-            final matricula = matched.first.matricula;
-            final qNotas = widget.db.select(widget.db.notes)
-              ..where((t) => t.matricula.equals(matricula))
-              ..orderBy([
-                (t) => OrderingTerm(
-                    expression: t.createdAt, mode: OrderingMode.desc),
-              ]);
-            return await qNotas.get();
+              final matricula = matched.first.matricula;
+              final qNotas = widget.db.select(widget.db.notes)
+                ..where((t) => t.matricula.equals(matricula))
+                ..orderBy([
+                  (t) => OrderingTerm(
+                      expression: t.createdAt, mode: OrderingMode.desc),
+                ]);
+              return qNotas.get();
+            }
+          } catch (e, st) {
+            print('[NOTES] local notes error: $e\n$st');
+            sourceErrors.add('Local (notas): $e');
+            return <DB.Note>[];
           }
         })(),
       ]);
@@ -840,11 +861,6 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
         if (d.isNotEmpty) servicios.add(d);
       }
       final integral = servicios.length >= 2;
-      final notasFinalDeduplicadas =
-          _timelineItemsFrom(notasNube, notasLocal).length;
-      ClinicalDateTime.debugLog(
-          '[NOTES] TIMELINE_LOAD local=${notasLocal.length} cloud=${notasNube.length} finalDedup=$notasFinalDeduplicadas');
-
       // 🎯 OPTIMIZACIÓN: Una sola llamada a setState con todos los datos
       if (!mounted) return;
       setState(() {
@@ -855,13 +871,20 @@ class _NuevaNotaScreenState extends State<NuevaNotaScreen>
         _cargando = false;
 
         // Mensaje informativo para búsqueda por nombre
+        String? nextError;
         if (!esMatricula && expLocal != null) {
-          _error =
-              'ℹ️ Búsqueda local: "${expLocal.nombreCompleto}". Para ver datos de nube, busca por matrícula: ${expLocal.matricula}';
+          nextError =
+              'Busqueda local: "${expLocal.nombreCompleto}" (${expLocal.matricula}).';
         } else if (!esMatricula && expLocal == null) {
-          _error =
-              'No se encontró ningún expediente local con ese nombre. Para buscar en nube, usa la matrícula.';
+          nextError =
+              'No se encontro ningun expediente local con ese nombre. Para buscar en nube, usa la matricula.';
         }
+        if (sourceErrors.isNotEmpty) {
+          final sourceMessage = sourceErrors.join(' | ');
+          nextError =
+              nextError == null ? sourceMessage : '$nextError\n$sourceMessage';
+        }
+        _error = nextError;
       });
     } catch (e) {
       if (!mounted) return;

@@ -107,9 +107,19 @@ class AppDatabase extends _$AppDatabase {
           }
           // Agregar campos synced
           if (from < 3) {
-            await m.addColumn(
-                healthRecords, healthRecords.synced as GeneratedColumn);
-            await m.addColumn(notes, notes.synced as GeneratedColumn);
+            await _addColumnIfMissing(
+              'health_records',
+              'synced',
+              () => m.addColumn(
+                healthRecords,
+                healthRecords.synced as GeneratedColumn,
+              ),
+            );
+            await _addColumnIfMissing(
+              'notes',
+              'synced',
+              () => m.addColumn(notes, notes.synced as GeneratedColumn),
+            );
           }
           // Agregar tabla citas
           if (from < 4) {
@@ -121,13 +131,31 @@ class AppDatabase extends _$AppDatabase {
           }
           // Agregar campos academicos multicampus
           if (from < 6) {
-            await m.addColumn(
-                healthRecords, healthRecords.escuelaUnidadAcademica);
-            await m.addColumn(healthRecords, healthRecords.grupo);
+            await _addColumnIfMissing(
+              'health_records',
+              'escuela_unidad_academica',
+              () => m.addColumn(
+                healthRecords,
+                healthRecords.escuelaUnidadAcademica,
+              ),
+            );
+            await _addColumnIfMissing(
+              'health_records',
+              'grupo',
+              () => m.addColumn(healthRecords, healthRecords.grupo),
+            );
           }
           if (from < 7) {
-            await m.addColumn(notes, notes.clientId);
-            await m.addColumn(notes, notes.updatedAt);
+            await _addColumnIfMissing(
+              'notes',
+              'client_id',
+              () => m.addColumn(notes, notes.clientId),
+            );
+            await _addColumnIfMissing(
+              'notes',
+              'updated_at',
+              () => m.addColumn(notes, notes.updatedAt),
+            );
             await customStatement(
               "UPDATE notes SET client_id = 'nota_local_' || id "
               "WHERE client_id IS NULL OR TRIM(client_id) = ''",
@@ -139,6 +167,34 @@ class AppDatabase extends _$AppDatabase {
           }
         },
       );
+
+  Future<bool> columnExists(
+    String tableName,
+    String columnName,
+  ) async {
+    final safeTableName = tableName.replaceAll('"', '""');
+    final rows = await customSelect(
+      'PRAGMA table_info("$safeTableName")',
+      readsFrom: const {},
+    ).get();
+
+    return rows.any((row) {
+      final name = row.data['name']?.toString();
+      return name == columnName;
+    });
+  }
+
+  Future<void> _addColumnIfMissing(
+    String tableName,
+    String columnName,
+    Future<void> Function() addColumn,
+  ) async {
+    if (await columnExists(tableName, columnName)) {
+      return;
+    }
+
+    await addColumn();
+  }
 
   // Inserciones (siempre con Companions)
   Future<int> insertRecord(HealthRecordsCompanion comp) =>
