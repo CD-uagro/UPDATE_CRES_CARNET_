@@ -1494,6 +1494,32 @@ class ApiService {
     );
   }
 
+  static Future<ReferralAdminModel> addCounterReferral({
+    required String referralId,
+    required CounterReferralCreateRequest request,
+  }) async {
+    final token = await _requireOnlineToken('registrar contrarreferencia');
+    final url = Uri.parse('$baseUrl/referrals/$referralId/counter-referral');
+
+    final response = await http
+        .post(
+          url,
+          headers: _jsonAuthHeaders(token),
+          body: jsonEncode(request.toJson()),
+        )
+        .timeout(_normalTimeout);
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return ReferralAdminModel.fromJson(
+        Map<String, dynamic>.from(jsonDecode(response.body) as Map),
+      );
+    }
+
+    throw Exception(
+      _httpErrorMessage('registrar contrarreferencia', response),
+    );
+  }
+
   static Future<AppointmentAdminModel> getAppointmentDetail(
     String appointmentId,
   ) async {

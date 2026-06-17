@@ -9,6 +9,7 @@ class ReferralAdminModel {
   final String status;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final ReferralCounterReferralModel? counterReferral;
   final List<ReferralStatusHistoryEntry> statusHistory;
 
   const ReferralAdminModel({
@@ -22,6 +23,7 @@ class ReferralAdminModel {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    required this.counterReferral,
     required this.statusHistory,
   });
 
@@ -35,6 +37,9 @@ class ReferralAdminModel {
     final destinationJson = json['destination'] is Map
         ? Map<String, dynamic>.from(json['destination'] as Map)
         : <String, dynamic>{};
+    final counterReferralJson = json['counterReferral'] is Map
+        ? Map<String, dynamic>.from(json['counterReferral'] as Map)
+        : null;
 
     return ReferralAdminModel(
       id: _readString(json, ['id', '_id', 'referralId']),
@@ -47,6 +52,9 @@ class ReferralAdminModel {
       status: _readString(json, ['status', 'estado'], fallback: 'sent'),
       createdAt: _readDate(json, ['createdAt', 'created_at']),
       updatedAt: _readDate(json, ['updatedAt', 'updated_at']),
+      counterReferral: counterReferralJson == null
+          ? null
+          : ReferralCounterReferralModel.fromJson(counterReferralJson),
       statusHistory: _readList(json['statusHistory'])
           .map((item) => ReferralStatusHistoryEntry.fromJson(item))
           .toList(),
@@ -167,6 +175,53 @@ class ReferralStatusHistoryEntry {
   }
 }
 
+class ReferralCounterReferralModel {
+  final String responseArea;
+  final String responseUserId;
+  final String responseUserName;
+  final String responseRole;
+  final String summary;
+  final String recommendations;
+  final bool followUpRequired;
+  final String followUpArea;
+  final String nextSuggestedAction;
+  final DateTime? createdAt;
+
+  const ReferralCounterReferralModel({
+    required this.responseArea,
+    required this.responseUserId,
+    required this.responseUserName,
+    required this.responseRole,
+    required this.summary,
+    required this.recommendations,
+    required this.followUpRequired,
+    required this.followUpArea,
+    required this.nextSuggestedAction,
+    required this.createdAt,
+  });
+
+  factory ReferralCounterReferralModel.fromJson(Map<String, dynamic> json) {
+    return ReferralCounterReferralModel(
+      responseArea: _readString(json, ['responseArea', 'response_area']),
+      responseUserId: _readString(json, ['responseUserId', 'response_user_id']),
+      responseUserName:
+          _readString(json, ['responseUserName', 'response_user_name']),
+      responseRole: _readString(json, ['responseRole', 'response_role']),
+      summary: _readString(json, ['summary', 'resumen']),
+      recommendations:
+          _readString(json, ['recommendations', 'recomendaciones']),
+      followUpRequired: json['followUpRequired'] == true ||
+          json['follow_up_required'] == true,
+      followUpArea: _readString(json, ['followUpArea', 'follow_up_area']),
+      nextSuggestedAction: _readString(
+        json,
+        ['nextSuggestedAction', 'next_suggested_action'],
+      ),
+      createdAt: _readDate(json, ['createdAt', 'created_at']),
+    );
+  }
+}
+
 class ReferralCreateRequest {
   final ReferralStudentModel student;
   final String originArea;
@@ -201,6 +256,23 @@ class ReferralCreateRequest {
       'reason': reason,
       if (observations.isNotEmpty) 'observations': observations,
       'send': true,
+    };
+  }
+}
+
+class CounterReferralCreateRequest {
+  final String summary;
+  final String recommendations;
+
+  const CounterReferralCreateRequest({
+    required this.summary,
+    required this.recommendations,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'summary': summary,
+      'recommendations': recommendations,
     };
   }
 }

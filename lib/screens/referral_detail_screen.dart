@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../data/api_service.dart';
 import '../models/referral_admin_model.dart';
+import '../screens/counter_referral_screen.dart';
 import '../ui/uagro_theme.dart';
 
 class ReferralDetailScreen extends StatefulWidget {
@@ -104,6 +105,20 @@ class _ReferralDetailScreenState extends State<ReferralDetailScreen> {
     }
   }
 
+  Future<void> _openCounterReferral(ReferralAdminModel referral) async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => CounterReferralScreen(referral: referral),
+      ),
+    );
+    if (saved == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Contrarreferencia guardada.')),
+      );
+      await _loadDetail();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -155,6 +170,8 @@ class _ReferralDetailScreenState extends State<ReferralDetailScreen> {
                   ],
                 ),
                 const SizedBox(height: 14),
+                _buildCounterReferralPanel(referral),
+                const SizedBox(height: 14),
                 _buildTimeline(referral.statusHistory),
               ],
             ),
@@ -202,6 +219,19 @@ class _ReferralDetailScreenState extends State<ReferralDetailScreen> {
                   : const Icon(Icons.arrow_forward_outlined),
               label: Text('Cambiar a ${_statusLabel(nextStatus)}'),
             ),
+          if (referral.status == 'attended') ...[
+            const SizedBox(width: 10),
+            OutlinedButton.icon(
+              onPressed:
+                  _savingStatus ? null : () => _openCounterReferral(referral),
+              icon: const Icon(Icons.assignment_return_outlined),
+              label: Text(
+                referral.counterReferral == null
+                    ? 'Contrarreferencia'
+                    : 'Actualizar contrarreferencia',
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -286,6 +316,63 @@ class _ReferralDetailScreenState extends State<ReferralDetailScreen> {
         ),
         _TextBlock(label: 'Motivo', value: referral.reason),
         _TextBlock(label: 'Observaciones', value: referral.observations),
+      ],
+    );
+  }
+
+  Widget _buildCounterReferralPanel(ReferralAdminModel referral) {
+    final counterReferral = referral.counterReferral;
+    if (counterReferral == null) {
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: _panelDecoration(),
+        child: const Row(
+          children: [
+            Icon(
+              Icons.assignment_return_outlined,
+              color: Color(0xFF64748B),
+            ),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Aun no hay contrarreferencia registrada.',
+                style: TextStyle(
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return _InfoPanel(
+      title: 'Contrarreferencia',
+      icon: Icons.assignment_return_outlined,
+      children: [
+        _InfoRow(
+          label: 'Area',
+          value: _areaLabel(counterReferral.responseArea),
+        ),
+        _InfoRow(
+          label: 'Responsable',
+          value: counterReferral.responseUserName.isEmpty
+              ? counterReferral.responseUserId
+              : counterReferral.responseUserName,
+        ),
+        _InfoRow(
+          label: 'Fecha',
+          value: _formatDate(counterReferral.createdAt),
+        ),
+        _TextBlock(
+          label: 'Resumen de atencion',
+          value: counterReferral.summary,
+        ),
+        _TextBlock(
+          label: 'Recomendaciones',
+          value: counterReferral.recommendations,
+        ),
       ],
     );
   }
