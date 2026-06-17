@@ -23,6 +23,7 @@ import 'package:cres_carnets_ibmcloud/models/appointment_admin_model.dart';
 import 'package:cres_carnets_ibmcloud/services/version_service.dart';
 import 'package:cres_carnets_ibmcloud/services/update_manager.dart';
 import 'package:cres_carnets_ibmcloud/widgets/appointment_toast.dart';
+import 'package:cres_carnets_ibmcloud/widgets/pending_appointments_reminder_toast.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Dashboard principal después del login
@@ -40,6 +41,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     'SASU_OBSERVATORIO_URL',
     defaultValue: '',
   );
+  static const Duration _pendingAppointmentsReminderInterval =
+      Duration(hours: 1);
 
   AuthUser? _currentUser;
   bool _loadingUser = true;
@@ -57,6 +60,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final Set<String> _notifiedAppointmentIds = <String>{};
   final List<AppointmentAdminModel> _appointmentToasts = [];
   final Map<String, Timer> _appointmentToastTimers = {};
+  DateTime? _lastPendingReminderAt;
+  Timer? _pendingReminderTimer;
+  bool _pendingReminderVisible = false;
+  int _pendingReminderCount = 0;
+  bool _appointmentsScreenOpen = false;
 
   // Manejador de actualizaciones
   UpdateManager? _updateManager;
@@ -106,6 +114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     for (final timer in _appointmentToastTimers.values) {
       timer.cancel();
     }
+    _pendingReminderTimer?.cancel();
     _updateManager?.dispose();
     super.dispose();
   }
@@ -175,6 +184,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       });
       if (showToasts) {
         _showNewAppointmentToasts(appointments);
+        _showPendingAppointmentsReminder(appointments.length);
       }
     } catch (e) {
       debugPrint('No se pudo cargar contador de citas pendientes: $e');
@@ -221,18 +231,69 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  void _showPendingAppointmentsReminder(int pendingCount) {
+    if (!_shouldShowPendingReminder(pendingCount)) return;
+    _lastPendingReminderAt = DateTime.now();
+    _pendingReminderTimer?.cancel();
+    setState(() {
+      _pendingReminderCount = pendingCount;
+      _pendingReminderVisible = true;
+    });
+    _pendingReminderTimer = Timer(const Duration(seconds: 10), () {
+      _dismissPendingReminder();
+    });
+  }
+
+  bool _shouldShowPendingReminder(int pendingCount) {
+    if (pendingCount <= 0) return false;
+    if (_pendingReminderVisible || _appointmentsScreenOpen) return false;
+    final lastReminder = _lastPendingReminderAt;
+    if (lastReminder == null) return true;
+    return DateTime.now().difference(lastReminder) >=
+        _pendingAppointmentsReminderInterval;
+  }
+
+  void _dismissPendingReminder() {
+    _pendingReminderTimer?.cancel();
+    _pendingReminderTimer = null;
+    if (!mounted || !_pendingReminderVisible) return;
+    setState(() {
+      _pendingReminderVisible = false;
+    });
+  }
+
+  Future<void> _openPendingAppointmentsReminder() async {
+    _dismissPendingReminder();
+    await _openAppointmentsScreen(initialStatus: 'requested');
+  }
+
   Future<void> _openAppointmentFromToast(
     AppointmentAdminModel appointment,
   ) async {
     _dismissAppointmentToast(appointment.id);
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AppointmentsScreen(
-          initialStatus: 'requested',
-          initialAppointmentId: appointment.id,
-        ),
-      ),
+    await _openAppointmentsScreen(
+      initialStatus: 'requested',
+      initialAppointmentId: appointment.id,
     );
+  }
+
+  Future<void> _openAppointmentsScreen({
+    String? initialStatus,
+    String? initialAppointmentId,
+  }) async {
+    _appointmentsScreenOpen = true;
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => AppointmentsScreen(
+            initialStatus: initialStatus,
+            initialAppointmentId: initialAppointmentId,
+          ),
+        ),
+      );
+    } finally {
+      _appointmentsScreenOpen = false;
+    }
     if (mounted) {
       _loadPendingAppointmentRequests();
     }
@@ -898,15 +959,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     'Agenda Integrada',
                                   );
                                   if (!allowed || !context.mounted) return;
-                                  await Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const AppointmentsScreen(),
-                                    ),
-                                  );
-                                  if (context.mounted) {
-                                    _loadPendingAppointmentRequests();
-                                  }
+                                  await _openAppointmentsScreen();
                                 },
                                 width: cardWidth,
                                 badge: _pendingAppointmentRequests > 0
@@ -952,7 +1005,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildAppointmentToastStack() {
-    if (_appointmentToasts.isEmpty) return const SizedBox.shrink();
+    if (_appointmentToasts.isEmpty && !_pendingReminderVisible) {
+      return const SizedBox.shrink();
+    }
     return Positioned(
       right: 22,
       bottom: 22,
@@ -962,16 +1017,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
-            children: _appointmentToasts.reversed.map((appointment) {
-              return Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: AppointmentToast(
-                  appointment: appointment,
-                  onClose: () => _dismissAppointmentToast(appointment.id),
-                  onView: () => _openAppointmentFromToast(appointment),
+            children: [
+              if (_pendingReminderVisible)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: PendingAppointmentsReminderToast(
+                    pendingCount: _pendingReminderCount,
+                    onClose: _dismissPendingReminder,
+                    onView: _openPendingAppointmentsReminder,
+                  ),
                 ),
-              );
-            }).toList(),
+              ..._appointmentToasts.reversed.map((appointment) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: AppointmentToast(
+                    appointment: appointment,
+                    onClose: () => _dismissAppointmentToast(appointment.id),
+                    onView: () => _openAppointmentFromToast(appointment),
+                  ),
+                );
+              }),
+            ],
           ),
         ),
       ),
