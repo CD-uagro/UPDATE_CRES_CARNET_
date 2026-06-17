@@ -8,6 +8,7 @@ import 'package:cres_carnets_ibmcloud/screens/promocion_salud_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/tickets_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/appointments_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/referrals_screen.dart';
+import 'package:cres_carnets_ibmcloud/screens/referral_detail_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/auth/login_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/about_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/database_cleaner_screen.dart';
@@ -21,10 +22,12 @@ import 'package:cres_carnets_ibmcloud/data/api_service.dart';
 import 'package:cres_carnets_ibmcloud/data/auth_service.dart';
 import 'package:cres_carnets_ibmcloud/data/sync_service.dart';
 import 'package:cres_carnets_ibmcloud/models/appointment_admin_model.dart';
+import 'package:cres_carnets_ibmcloud/models/referral_admin_model.dart';
 import 'package:cres_carnets_ibmcloud/services/version_service.dart';
 import 'package:cres_carnets_ibmcloud/services/update_manager.dart';
 import 'package:cres_carnets_ibmcloud/widgets/appointment_toast.dart';
 import 'package:cres_carnets_ibmcloud/widgets/pending_appointments_reminder_toast.dart';
+import 'package:cres_carnets_ibmcloud/widgets/referral_toast.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Dashboard principal después del login
@@ -44,6 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   );
   static const Duration _pendingAppointmentsReminderInterval =
       Duration(hours: 1);
+  static const Duration _referralNotificationInterval = Duration(minutes: 15);
 
   AuthUser? _currentUser;
   bool _loadingUser = true;
@@ -67,6 +71,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _pendingReminderVisible = false;
   int _pendingReminderCount = 0;
   bool _appointmentsScreenOpen = false;
+  bool _pollingReferrals = false;
+  Timer? _referralPollingTimer;
+  final List<ReferralAdminModel> _referralToasts = [];
+  final Map<String, Timer> _referralToastTimers = {};
+  final Map<String, DateTime> _lastReferralNotificationAt = {};
+  bool _referralsScreenOpen = false;
 
   // Manejador de actualizaciones
   UpdateManager? _updateManager;
@@ -116,6 +126,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     for (final timer in _appointmentToastTimers.values) {
       timer.cancel();
     }
+    _referralPollingTimer?.cancel();
+    for (final timer in _referralToastTimers.values) {
+      timer.cancel();
+    }
     _pendingReminderTimer?.cancel();
     _updateManager?.dispose();
     super.dispose();
@@ -157,10 +171,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } else {
       _stopAppointmentPolling();
     }
+    if (canReferrals) {
+      _startReferralPolling();
+    } else {
+      _stopReferralPolling();
+    }
   }
 
   Future<void> _loadPendingAppointmentRequests() async {
     await _pollAppointmentRequests(showToasts: false);
+  }
+
+  Future<void> _loadPendingReferralRequests() async {
+    await _pollReferralRequests(showToasts: false);
   }
 
   void _startAppointmentPolling() {
@@ -174,6 +197,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _stopAppointmentPolling() {
     _appointmentPollingTimer?.cancel();
     _appointmentPollingTimer = null;
+  }
+
+  void _startReferralPolling() {
+    _referralPollingTimer?.cancel();
+    _pollReferralRequests();
+    _referralPollingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      _pollReferralRequests();
+    });
+  }
+
+  void _stopReferralPolling() {
+    _referralPollingTimer?.cancel();
+    _referralPollingTimer = null;
   }
 
   Future<void> _pollAppointmentRequests({bool showToasts = true}) async {
@@ -225,6 +261,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _dismissAppointmentToast(appointment.id);
       });
     }
+  }
+
+  Future<void> _pollReferralRequests({bool showToasts = true}) async {
+    if (_pollingReferrals) return;
+    _pollingReferrals = true;
+    try {
+      final user = _currentUser ?? await AuthService.getCurrentUser();
+      if (mounted && _currentUser == null && user != null) {
+        setState(() => _currentUser = user);
+      }
+      final destinationArea = _referralAreaForRole(user?.rol);
+      final referrals = await ApiService.getReferrals(
+        status: 'sent',
+        destinationArea: destinationArea,
+      );
+      if (!mounted) return;
+      if (showToasts) {
+        _showNewReferralToasts(referrals);
+      }
+    } catch (e) {
+      debugPrint('No se pudieron cargar referencias pendientes: $e');
+    } finally {
+      _pollingReferrals = false;
+    }
+  }
+
+  void _showNewReferralToasts(List<ReferralAdminModel> referrals) {
+    if (_referralsScreenOpen) return;
+    final now = DateTime.now();
+    final pending = referrals.where((referral) {
+      if (referral.status != 'sent' || referral.id.isEmpty) return false;
+      if (_referralToasts.any((item) => item.id == referral.id)) {
+        return false;
+      }
+      final lastShown = _lastReferralNotificationAt[referral.id];
+      if (lastShown == null) return true;
+      return now.difference(lastShown) >= _referralNotificationInterval;
+    }).toList()
+      ..sort((a, b) {
+        final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bDate.compareTo(aDate);
+      });
+
+    for (final referral in pending) {
+      if (_referralToasts.length >= 3) break;
+      _lastReferralNotificationAt[referral.id] = now;
+      setState(() {
+        _referralToasts.add(referral);
+      });
+      _referralToastTimers[referral.id] =
+          Timer(const Duration(seconds: 10), () {
+        _dismissReferralToast(referral.id);
+      });
+    }
+  }
+
+  void _dismissReferralToast(String referralId) {
+    _referralToastTimers.remove(referralId)?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _referralToasts.removeWhere((item) => item.id == referralId);
+    });
+  }
+
+  void _dismissAllReferralToasts() {
+    for (final timer in _referralToastTimers.values) {
+      timer.cancel();
+    }
+    _referralToastTimers.clear();
+    if (!mounted || _referralToasts.isEmpty) return;
+    setState(() {
+      _referralToasts.clear();
+    });
   }
 
   void _dismissAppointmentToast(String appointmentId) {
@@ -281,6 +391,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Future<void> _openReferralFromToast(ReferralAdminModel referral) async {
+    _dismissReferralToast(referral.id);
+    _referralsScreenOpen = true;
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ReferralDetailScreen(referralId: referral.id),
+        ),
+      );
+    } finally {
+      _referralsScreenOpen = false;
+    }
+    if (mounted) {
+      _loadPendingReferralRequests();
+    }
+  }
+
   Future<void> _openAppointmentsScreen({
     String? initialStatus,
     String? initialAppointmentId,
@@ -301,6 +428,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (mounted) {
       _loadPendingAppointmentRequests();
     }
+  }
+
+  Future<void> _openReferralsScreen() async {
+    _dismissAllReferralToasts();
+    _referralsScreenOpen = true;
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ReferralsScreen()),
+      );
+    } finally {
+      _referralsScreenOpen = false;
+    }
+    if (mounted) {
+      _loadPendingReferralRequests();
+    }
+  }
+
+  static String? _referralAreaForRole(String? role) {
+    return switch (role) {
+      'medico' => 'medico',
+      'psicologia' => 'psicologia',
+      'nutricion' => 'nutricion',
+      'odontologia' => 'odontologia',
+      'servicios_estudiantiles' => 'atencion_estudiantil',
+      _ => null,
+    };
   }
 
   /// Obtener string de versión actual
@@ -986,11 +1139,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     'Referencias',
                                   );
                                   if (!allowed || !context.mounted) return;
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const ReferralsScreen(),
-                                    ),
-                                  );
+                                  await _openReferralsScreen();
                                 },
                                 width: cardWidth,
                                 badge: '2.7',
@@ -1028,13 +1177,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ),
-        _buildAppointmentToastStack(),
+        _buildNotificationToastStack(),
       ],
     );
   }
 
-  Widget _buildAppointmentToastStack() {
-    if (_appointmentToasts.isEmpty && !_pendingReminderVisible) {
+  Widget _buildNotificationToastStack() {
+    if (_appointmentToasts.isEmpty &&
+        _referralToasts.isEmpty &&
+        !_pendingReminderVisible) {
       return const SizedBox.shrink();
     }
     return Positioned(
@@ -1063,6 +1214,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     appointment: appointment,
                     onClose: () => _dismissAppointmentToast(appointment.id),
                     onView: () => _openAppointmentFromToast(appointment),
+                  ),
+                );
+              }),
+              ..._referralToasts.reversed.map((referral) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: ReferralToast(
+                    referral: referral,
+                    onClose: () => _dismissReferralToast(referral.id),
+                    onView: () => _openReferralFromToast(referral),
                   ),
                 );
               }),
