@@ -7,6 +7,7 @@ import 'package:cres_carnets_ibmcloud/screens/vaccination_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/promocion_salud_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/tickets_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/appointments_screen.dart';
+import 'package:cres_carnets_ibmcloud/screens/referrals_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/auth/login_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/about_screen.dart';
 import 'package:cres_carnets_ibmcloud/screens/database_cleaner_screen.dart';
@@ -54,6 +55,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _canViewVacunacion = false;
   bool _canViewTickets = false;
   bool _canViewAppointments = false;
+  bool _canViewReferrals = false;
   int _pendingAppointmentRequests = 0;
   bool _pollingAppointments = false;
   Timer? _appointmentPollingTimer;
@@ -137,6 +139,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final canVacunacion = await AuthService.hasPermission('vacunacion:read');
     final canTickets = await AuthService.hasPermission('tickets:read');
     final canAppointments = await AuthService.hasPermission('citas:read');
+    final canReferrals = canExpedientes;
 
     if (mounted) {
       setState(() {
@@ -146,6 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _canViewVacunacion = canVacunacion;
         _canViewTickets = canTickets;
         _canViewAppointments = canAppointments;
+        _canViewReferrals = canReferrals;
       });
     }
     if (canAppointments) {
@@ -965,6 +969,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 badge: _pendingAppointmentRequests > 0
                                     ? '$_pendingAppointmentRequests nuevas'
                                     : 'MVP',
+                              ),
+                            );
+                          }
+
+                          if (_canViewReferrals) {
+                            visibleOptions.add(
+                              _DashboardCard(
+                                icon: Icons.swap_horiz_outlined,
+                                title: 'Referencias',
+                                description: 'Canalizacion entre areas SASU',
+                                color: Colors.indigo[700]!,
+                                onTap: () async {
+                                  final allowed = await _checkPermission(
+                                    'notas:write',
+                                    'Referencias',
+                                  );
+                                  if (!allowed || !context.mounted) return;
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const ReferralsScreen(),
+                                    ),
+                                  );
+                                },
+                                width: cardWidth,
+                                badge: '2.7',
                               ),
                             );
                           }

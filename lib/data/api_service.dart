@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'cache_service.dart';
 import 'auth_service.dart' as auth;
 import '../models/appointment_admin_model.dart';
+import '../models/referral_admin_model.dart';
 import '../models/ticket_admin_model.dart';
 import '../utils/sync_logger.dart';
 import '../utils/clinical_datetime.dart';
@@ -1377,6 +1378,47 @@ class ApiService {
     }
 
     throw Exception(_httpErrorMessage('consultar citas', response));
+  }
+
+  static Future<List<ReferralAdminModel>> getReferrals({
+    String? status,
+    String? destinationArea,
+    String? matricula,
+    String? studentName,
+  }) async {
+    final token = await _requireOnlineToken('consultar referencias');
+    final query = <String, String>{
+      if (_hasText(status)) 'status': status!.trim(),
+      if (_hasText(destinationArea))
+        'destination_area': destinationArea!.trim(),
+      if (_hasText(matricula)) 'matricula': matricula!.trim(),
+      if (_hasText(studentName)) 'student_name': studentName!.trim(),
+    };
+    final url = Uri.parse('$baseUrl/referrals').replace(queryParameters: query);
+
+    final response = await http
+        .get(
+          url,
+          headers: _jsonAuthHeaders(token),
+        )
+        .timeout(_normalTimeout);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final items = data is List
+          ? data
+          : data is Map && data['data'] is List
+              ? data['data'] as List
+              : const [];
+      return items
+          .whereType<Map>()
+          .map((item) => ReferralAdminModel.fromJson(
+                Map<String, dynamic>.from(item),
+              ))
+          .toList();
+    }
+
+    throw Exception(_httpErrorMessage('consultar referencias', response));
   }
 
   static Future<AppointmentAdminModel> getAppointmentDetail(

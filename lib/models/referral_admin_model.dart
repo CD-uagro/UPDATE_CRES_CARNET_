@@ -1,0 +1,187 @@
+class ReferralAdminModel {
+  final String id;
+  final ReferralStudentModel student;
+  final ReferralActorModel origin;
+  final ReferralDestinationModel destination;
+  final String priority;
+  final String reason;
+  final String status;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final List<ReferralStatusHistoryEntry> statusHistory;
+
+  const ReferralAdminModel({
+    required this.id,
+    required this.student,
+    required this.origin,
+    required this.destination,
+    required this.priority,
+    required this.reason,
+    required this.status,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.statusHistory,
+  });
+
+  factory ReferralAdminModel.fromJson(Map<String, dynamic> json) {
+    final studentJson = json['student'] is Map
+        ? Map<String, dynamic>.from(json['student'] as Map)
+        : <String, dynamic>{};
+    final originJson = json['origin'] is Map
+        ? Map<String, dynamic>.from(json['origin'] as Map)
+        : <String, dynamic>{};
+    final destinationJson = json['destination'] is Map
+        ? Map<String, dynamic>.from(json['destination'] as Map)
+        : <String, dynamic>{};
+
+    return ReferralAdminModel(
+      id: _readString(json, ['id', '_id', 'referralId']),
+      student: ReferralStudentModel.fromJson(studentJson),
+      origin: ReferralActorModel.fromJson(originJson),
+      destination: ReferralDestinationModel.fromJson(destinationJson),
+      priority: _readString(json, ['priority', 'prioridad'], fallback: 'media'),
+      reason: _readString(json, ['reason', 'motivo']),
+      status: _readString(json, ['status', 'estado'], fallback: 'sent'),
+      createdAt: _readDate(json, ['createdAt', 'created_at']),
+      updatedAt: _readDate(json, ['updatedAt', 'updated_at']),
+      statusHistory: _readList(json['statusHistory'])
+          .map((item) => ReferralStatusHistoryEntry.fromJson(item))
+          .toList(),
+    );
+  }
+}
+
+class ReferralStudentModel {
+  final String matricula;
+  final String nombre;
+  final String correo;
+  final String programa;
+  final String campus;
+  final String unidadAcademica;
+
+  const ReferralStudentModel({
+    required this.matricula,
+    required this.nombre,
+    required this.correo,
+    required this.programa,
+    required this.campus,
+    required this.unidadAcademica,
+  });
+
+  factory ReferralStudentModel.fromJson(Map<String, dynamic> json) {
+    return ReferralStudentModel(
+      matricula: _readString(json, ['matricula']),
+      nombre: _readString(json, ['nombre', 'nombreCompleto', 'studentName']),
+      correo: _readString(json, ['correo', 'email', 'correoInstitucional']),
+      programa: _readString(json, ['programa']),
+      campus: _readString(json, ['campus']),
+      unidadAcademica: _readString(json, [
+        'unidadAcademica',
+        'unidad_academica',
+        'escuelaUnidadAcademica',
+      ]),
+    );
+  }
+}
+
+class ReferralActorModel {
+  final String area;
+  final String userId;
+  final String userName;
+  final String role;
+
+  const ReferralActorModel({
+    required this.area,
+    required this.userId,
+    required this.userName,
+    required this.role,
+  });
+
+  factory ReferralActorModel.fromJson(Map<String, dynamic> json) {
+    return ReferralActorModel(
+      area: _readString(json, ['area']),
+      userId: _readString(json, ['userId', 'user_id']),
+      userName: _readString(json, ['userName', 'user_name']),
+      role: _readString(json, ['role', 'rol']),
+    );
+  }
+}
+
+class ReferralDestinationModel {
+  final String area;
+  final String assignedUserId;
+  final String assignedUserName;
+
+  const ReferralDestinationModel({
+    required this.area,
+    required this.assignedUserId,
+    required this.assignedUserName,
+  });
+
+  factory ReferralDestinationModel.fromJson(Map<String, dynamic> json) {
+    return ReferralDestinationModel(
+      area: _readString(json, ['area']),
+      assignedUserId: _readString(json, ['assignedUserId', 'assigned_user_id']),
+      assignedUserName:
+          _readString(json, ['assignedUserName', 'assigned_user_name']),
+    );
+  }
+}
+
+class ReferralStatusHistoryEntry {
+  final String previousStatus;
+  final String status;
+  final String byUserId;
+  final String byRole;
+  final String note;
+  final DateTime? at;
+
+  const ReferralStatusHistoryEntry({
+    required this.previousStatus,
+    required this.status,
+    required this.byUserId,
+    required this.byRole,
+    required this.note,
+    required this.at,
+  });
+
+  factory ReferralStatusHistoryEntry.fromJson(Map<String, dynamic> json) {
+    return ReferralStatusHistoryEntry(
+      previousStatus:
+          _readString(json, ['previousStatus', 'previous_status', 'from']),
+      status: _readString(json, ['status', 'to']),
+      byUserId: _readString(json, ['byUserId', 'by_user_id', 'actor']),
+      byRole: _readString(json, ['byRole', 'by_role', 'actor_role']),
+      note: _readString(json, ['note', 'message']),
+      at: _readDate(json, ['at', 'created_at', 'createdAt']),
+    );
+  }
+}
+
+List<Map<String, dynamic>> _readList(dynamic value) {
+  if (value is! List) return const [];
+  return value
+      .whereType<Map>()
+      .map((item) => Map<String, dynamic>.from(item))
+      .toList();
+}
+
+String _readString(
+  Map<String, dynamic> json,
+  List<String> keys, {
+  String fallback = '',
+}) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value != null && value.toString().trim().isNotEmpty) {
+      return value.toString().trim();
+    }
+  }
+  return fallback;
+}
+
+DateTime? _readDate(Map<String, dynamic> json, List<String> keys) {
+  final value = _readString(json, keys);
+  if (value.isEmpty) return null;
+  return DateTime.tryParse(value);
+}
