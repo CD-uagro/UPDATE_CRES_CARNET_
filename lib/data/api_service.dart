@@ -1468,6 +1468,32 @@ class ApiService {
     );
   }
 
+  static Future<ReferralAdminModel> updateReferralStatus({
+    required String referralId,
+    required String status,
+  }) async {
+    final token = await _requireOnlineToken('cambiar estado de referencia');
+    final url = Uri.parse('$baseUrl/referrals/$referralId/status');
+
+    final response = await http
+        .patch(
+          url,
+          headers: _jsonAuthHeaders(token),
+          body: jsonEncode({'status': status}),
+        )
+        .timeout(_normalTimeout);
+
+    if (response.statusCode == 200) {
+      return ReferralAdminModel.fromJson(
+        Map<String, dynamic>.from(jsonDecode(response.body) as Map),
+      );
+    }
+
+    throw Exception(
+      _httpErrorMessage('cambiar estado de referencia', response),
+    );
+  }
+
   static Future<AppointmentAdminModel> getAppointmentDetail(
     String appointmentId,
   ) async {

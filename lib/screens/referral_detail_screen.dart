@@ -19,6 +19,7 @@ class ReferralDetailScreen extends StatefulWidget {
 
 class _ReferralDetailScreenState extends State<ReferralDetailScreen> {
   bool _loading = true;
+  bool _savingStatus = false;
   String? _error;
   ReferralAdminModel? _referral;
 
@@ -47,6 +48,59 @@ class _ReferralDetailScreenState extends State<ReferralDetailScreen> {
         _error = e.toString();
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _changeStatus(String nextStatus) async {
+    final referral = _referral;
+    if (referral == null || _savingStatus) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cambiar estado'),
+        content: Text('¿Cambiar estado a ${_statusLabel(nextStatus)}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Cambiar estado'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _savingStatus = true);
+    try {
+      final updated = await ApiService.updateReferralStatus(
+        referralId: referral.id,
+        status: nextStatus,
+      );
+      if (!mounted) return;
+      setState(() {
+        _referral = updated;
+        _savingStatus = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('Referencia actualizada a ${_statusLabel(nextStatus)}.'),
+        ),
+      );
+      await _loadDetail();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _savingStatus = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: UAGroColors.rojoEscudo,
+        ),
+      );
     }
   }
 
@@ -90,6 +144,8 @@ class _ReferralDetailScreenState extends State<ReferralDetailScreen> {
               children: [
                 _buildHeader(referral),
                 const SizedBox(height: 14),
+                _buildActions(referral),
+                const SizedBox(height: 14),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -104,6 +160,49 @@ class _ReferralDetailScreenState extends State<ReferralDetailScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildActions(ReferralAdminModel referral) {
+    final nextStatus = _nextStatus(referral.status);
+    final isFinal =
+        referral.status == 'closed' || referral.status == 'cancelled';
+    final title = isFinal
+        ? 'La referencia se encuentra ${_statusLabel(referral.status).toLowerCase()}.'
+        : nextStatus == null
+            ? 'No hay acciones disponibles para este estado.'
+            : 'Siguiente accion disponible';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _panelDecoration(),
+      child: Row(
+        children: [
+          Icon(
+            isFinal ? Icons.lock_outline : Icons.task_alt_outlined,
+            color: isFinal ? const Color(0xFF64748B) : UAGroColors.azulMarino,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+          if (nextStatus != null)
+            FilledButton.icon(
+              onPressed: _savingStatus ? null : () => _changeStatus(nextStatus),
+              icon: _savingStatus
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.arrow_forward_outlined),
+              label: Text('Cambiar a ${_statusLabel(nextStatus)}'),
+            ),
+        ],
       ),
     );
   }
@@ -286,6 +385,17 @@ class _ReferralDetailScreenState extends State<ReferralDetailScreen> {
       ],
     );
   }
+}
+
+String? _nextStatus(String status) {
+  const transitions = {
+    'sent': 'received',
+    'received': 'accepted',
+    'accepted': 'scheduled',
+    'scheduled': 'attended',
+    'attended': 'closed',
+  };
+  return transitions[status];
 }
 
 class _InfoPanel extends StatelessWidget {
