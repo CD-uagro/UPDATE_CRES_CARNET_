@@ -1,20 +1,20 @@
 {
-  "version": "2.6.1",
-  "buildNumber": 41,
-  "releaseDate": "2026-06-16",
+  "version": "2.6.2",
+  "buildNumber": 42,
+  "releaseDate": "2026-06-17",
   "channel": "development",
   "minimumVersion": "2.0.0",
   "artifact": {
     "type": "exe",
-    "fileName": "CRES_Carnets_Setup_v2.6.1.exe",
-    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.6.1/CRES_Carnets_Setup_v2.6.1.exe",
-    "sha256": "0D6FE105CA9324CB3D8FE9C78F3C4D1457E6DCBFF010DC59B26BCE28321DFCD8",
-    "fileSize": 13972922
+    "fileName": "CRES_Carnets_Setup_v2.6.2.exe",
+    "downloadUrl": "https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.6.2/CRES_Carnets_Setup_v2.6.2.exe",
+    "sha256": "AFAF9BDE87A4CF71E839E04D5AFA07F8F94FD5C6DFE8C874CD6CDBEED9B42E1A",
+    "fileSize": 13986552
   },
   "changelog": [
-    "Corrige fallo de migracion SQLite parcial.",
-    "Restaura carga de notas locales y Cosmos en Expedientes.",
-    "Aisla errores local/nube para evitar que una fuente bloquee la otra.",
-    "Corrige compatibilidad con respuesta Cosmos { value: [...] }."
+    "Agrega Agenda Integrada para solicitudes universitarias.",
+    "Permite gestionar citas solicitadas desde Carnet Digital.",
+    "Integra Carnet Digital, backend Node, FastAPI, Cosmos DB y SASU Windows.",
+    "Mantiene correcciones de sincronizacion de notas incluidas en 2.6.1."
   ]
 }
