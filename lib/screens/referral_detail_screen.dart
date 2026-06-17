@@ -182,56 +182,59 @@ class _ReferralDetailScreenState extends State<ReferralDetailScreen> {
   }
 
   Widget _buildActions(ReferralAdminModel referral) {
-    final nextStatus = _nextStatus(referral.status);
+    final actions = _availableActions(referral.status);
     final isFinal =
         referral.status == 'closed' || referral.status == 'cancelled';
     final title = isFinal
         ? 'La referencia se encuentra ${_statusLabel(referral.status).toLowerCase()}.'
-        : nextStatus == null
+        : actions.isEmpty
             ? 'No hay acciones disponibles para este estado.'
-            : 'Siguiente accion disponible';
+            : 'Acciones disponibles';
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _panelDecoration(),
-      child: Row(
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Icon(
-            isFinal ? Icons.lock_outline : Icons.task_alt_outlined,
-            color: isFinal ? const Color(0xFF64748B) : UAGroColors.azulMarino,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w800),
+          SizedBox(
+            width: 320,
+            child: Row(
+              children: [
+                Icon(
+                  isFinal ? Icons.lock_outline : Icons.task_alt_outlined,
+                  color: isFinal
+                      ? const Color(0xFF64748B)
+                      : UAGroColors.azulMarino,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
             ),
           ),
-          if (nextStatus != null)
-            FilledButton.icon(
-              onPressed: _savingStatus ? null : () => _changeStatus(nextStatus),
-              icon: _savingStatus
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.arrow_forward_outlined),
-              label: Text('Cambiar a ${_statusLabel(nextStatus)}'),
-            ),
-          if (referral.status == 'attended') ...[
-            const SizedBox(width: 10),
+          ...actions.map((action) => _StatusActionButton(
+                action: action,
+                saving: _savingStatus,
+                onPressed: () => _changeStatus(action.status),
+              )),
+          if (referral.status == 'attended')
             OutlinedButton.icon(
               onPressed:
                   _savingStatus ? null : () => _openCounterReferral(referral),
               icon: const Icon(Icons.assignment_return_outlined),
               label: Text(
                 referral.counterReferral == null
-                    ? 'Contrarreferencia'
+                    ? 'Crear contrarreferencia'
                     : 'Actualizar contrarreferencia',
               ),
             ),
-          ],
         ],
       ),
     );
@@ -315,7 +318,10 @@ class _ReferralDetailScreenState extends State<ReferralDetailScreen> {
           value: _areaLabel(referral.destination.area),
         ),
         _TextBlock(label: 'Motivo', value: referral.reason),
-        _TextBlock(label: 'Observaciones', value: referral.observations),
+        _TextBlock(
+          label: 'Notas clinicas o administrativas',
+          value: referral.observations,
+        ),
       ],
     );
   }
@@ -474,15 +480,130 @@ class _ReferralDetailScreenState extends State<ReferralDetailScreen> {
   }
 }
 
-String? _nextStatus(String status) {
-  const transitions = {
-    'sent': 'received',
-    'received': 'accepted',
-    'accepted': 'scheduled',
-    'scheduled': 'attended',
-    'attended': 'closed',
-  };
-  return transitions[status];
+List<_ReferralStatusAction> _availableActions(String status) {
+  switch (status) {
+    case 'sent':
+      return const [
+        _ReferralStatusAction(
+          status: 'received',
+          label: 'Recibir referencia',
+          icon: Icons.mark_email_read_outlined,
+          primary: true,
+        ),
+        _ReferralStatusAction(
+          status: 'cancelled',
+          label: 'Rechazar referencia',
+          icon: Icons.cancel_outlined,
+        ),
+      ];
+    case 'received':
+      return const [
+        _ReferralStatusAction(
+          status: 'accepted',
+          label: 'Aceptar referencia',
+          icon: Icons.check_circle_outline,
+          primary: true,
+        ),
+        _ReferralStatusAction(
+          status: 'cancelled',
+          label: 'Rechazar referencia',
+          icon: Icons.cancel_outlined,
+        ),
+      ];
+    case 'accepted':
+      return const [
+        _ReferralStatusAction(
+          status: 'scheduled',
+          label: 'Marcar agendada',
+          icon: Icons.event_available_outlined,
+          primary: true,
+        ),
+        _ReferralStatusAction(
+          status: 'attended',
+          label: 'Marcar atendida',
+          icon: Icons.medical_services_outlined,
+        ),
+        _ReferralStatusAction(
+          status: 'cancelled',
+          label: 'Rechazar referencia',
+          icon: Icons.cancel_outlined,
+        ),
+      ];
+    case 'scheduled':
+      return const [
+        _ReferralStatusAction(
+          status: 'attended',
+          label: 'Marcar atendida',
+          icon: Icons.medical_services_outlined,
+          primary: true,
+        ),
+        _ReferralStatusAction(
+          status: 'cancelled',
+          label: 'Rechazar referencia',
+          icon: Icons.cancel_outlined,
+        ),
+      ];
+    case 'attended':
+      return const [
+        _ReferralStatusAction(
+          status: 'closed',
+          label: 'Cerrar referencia',
+          icon: Icons.task_alt_outlined,
+          primary: true,
+        ),
+      ];
+    default:
+      return const [];
+  }
+}
+
+class _ReferralStatusAction {
+  final String status;
+  final String label;
+  final IconData icon;
+  final bool primary;
+
+  const _ReferralStatusAction({
+    required this.status,
+    required this.label,
+    required this.icon,
+    this.primary = false,
+  });
+}
+
+class _StatusActionButton extends StatelessWidget {
+  final _ReferralStatusAction action;
+  final bool saving;
+  final VoidCallback onPressed;
+
+  const _StatusActionButton({
+    required this.action,
+    required this.saving,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = saving
+        ? const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : Icon(action.icon);
+    if (action.primary) {
+      return FilledButton.icon(
+        onPressed: saving ? null : onPressed,
+        icon: icon,
+        label: Text(action.label),
+      );
+    }
+    return OutlinedButton.icon(
+      onPressed: saving ? null : onPressed,
+      icon: icon,
+      label: Text(action.label),
+    );
+  }
 }
 
 class _InfoPanel extends StatelessWidget {
@@ -770,7 +891,7 @@ String _statusLabel(String value) {
     'scheduled': 'Agendada',
     'attended': 'Atendida',
     'closed': 'Cerrada',
-    'cancelled': 'Cancelada',
+    'cancelled': 'Rechazada',
   };
   return labels[value] ?? value.replaceAll('_', ' ');
 }

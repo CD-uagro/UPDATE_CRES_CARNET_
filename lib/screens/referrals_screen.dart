@@ -15,16 +15,23 @@ class ReferralsScreen extends StatefulWidget {
 }
 
 class _ReferralsScreenState extends State<ReferralsScreen> {
-  static const _statuses = {
+  static const _statusFilters = {
     '': 'Todos',
+    'pending': 'Pendientes',
+    'accepted': 'Aceptadas',
+    'cancelled': 'Rechazadas',
+    'closed': 'Cerradas',
+  };
+
+  static const _statuses = {
     'draft': 'Borrador',
-    'sent': 'Enviada',
+    'sent': 'Pendiente',
     'received': 'Recibida',
     'accepted': 'Aceptada',
     'scheduled': 'Agendada',
     'attended': 'Atendida',
     'closed': 'Cerrada',
-    'cancelled': 'Cancelada',
+    'cancelled': 'Rechazada',
   };
 
   static const _areas = {
@@ -39,7 +46,7 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
   final _matriculaController = TextEditingController();
   final _nombreController = TextEditingController();
 
-  String _status = '';
+  String _statusFilter = '';
   String _destinationArea = '';
   bool _loading = true;
   String? _error;
@@ -66,12 +73,14 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
 
     try {
       final referrals = await ApiService.getReferrals(
-        status: _status,
+        status: _serverStatusForFilter(_statusFilter),
         destinationArea: _destinationArea,
         matricula: _matriculaController.text,
         studentName: _nombreController.text,
       );
-      referrals.sort((a, b) {
+      final visibleReferrals =
+          referrals.where((item) => _matchesStatusFilter(item)).toList();
+      visibleReferrals.sort((a, b) {
         final aDate = a.updatedAt ?? a.createdAt;
         final bDate = b.updatedAt ?? b.createdAt;
         if (aDate == null && bDate == null) return 0;
@@ -81,7 +90,7 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
       });
       if (!mounted) return;
       setState(() {
-        _referrals = referrals;
+        _referrals = visibleReferrals;
         _loading = false;
       });
     } catch (e) {
@@ -98,7 +107,7 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
     _matriculaController.clear();
     _nombreController.clear();
     setState(() {
-      _status = '';
+      _statusFilter = '';
       _destinationArea = '';
     });
     _loadReferrals();
@@ -130,7 +139,7 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
     return Scaffold(
       backgroundColor: UAGroColors.grisClaro,
       appBar: AppBar(
-        title: const Text('Referencias'),
+        title: const Text('Referencias y Contrarreferencias'),
         backgroundColor: UAGroColors.azulMarino,
         foregroundColor: Colors.white,
         actions: [
@@ -177,12 +186,7 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
   }
 
   Widget _buildHeader() {
-    final pending = _referrals
-        .where((item) =>
-            item.status == 'sent' ||
-            item.status == 'received' ||
-            item.status == 'accepted')
-        .length;
+    final pending = _referrals.where((item) => _isPending(item.status)).length;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _panelDecoration(),
@@ -206,7 +210,7 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Bandeja de Referencias',
+                  'Bandeja de Referencias y Contrarreferencias',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
                 ),
                 SizedBox(height: 3),
@@ -234,9 +238,9 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
           Expanded(
             child: _DropdownFilter(
               label: 'Estado',
-              value: _status,
-              items: _statuses,
-              onChanged: (value) => setState(() => _status = value ?? ''),
+              value: _statusFilter,
+              items: _statusFilters,
+              onChanged: (value) => setState(() => _statusFilter = value ?? ''),
             ),
           ),
           const SizedBox(width: 10),
@@ -405,7 +409,7 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
           ),
           SizedBox(height: 12),
           Text(
-            'No hay referencias para mostrar',
+            'No hay referencias ni contrarreferencias para mostrar',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
           ),
           SizedBox(height: 6),
@@ -444,6 +448,37 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
   static String _statusLabel(String value) =>
       _statuses[value] ?? value.replaceAll('_', ' ');
 
+  static String? _serverStatusForFilter(String filter) {
+    switch (filter) {
+      case 'cancelled':
+      case 'closed':
+        return filter;
+      default:
+        return null;
+    }
+  }
+
+  bool _matchesStatusFilter(ReferralAdminModel referral) {
+    switch (_statusFilter) {
+      case 'pending':
+        return _isPending(referral.status);
+      case 'accepted':
+        return referral.status == 'accepted' ||
+            referral.status == 'scheduled' ||
+            referral.status == 'attended';
+      case 'cancelled':
+        return referral.status == 'cancelled';
+      case 'closed':
+        return referral.status == 'closed';
+      default:
+        return true;
+    }
+  }
+
+  static bool _isPending(String status) {
+    return status == 'sent' || status == 'received';
+  }
+
   static String _priorityLabel(String value) {
     const labels = {
       'baja': 'Baja',
@@ -459,8 +494,8 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
       case 'draft':
         return Colors.grey;
       case 'sent':
-        return Colors.blue;
       case 'received':
+        return Colors.blue;
       case 'accepted':
         return Colors.orange;
       case 'scheduled':

@@ -61,6 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _canViewAppointments = false;
   bool _canViewReferrals = false;
   int _pendingAppointmentRequests = 0;
+  int _pendingReferralRequests = 0;
   bool _pollingAppointments = false;
   Timer? _appointmentPollingTimer;
   final Set<String> _notifiedAppointmentIds = <String>{};
@@ -277,6 +278,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         destinationArea: destinationArea,
       );
       if (!mounted) return;
+      setState(() {
+        _pendingReferralRequests = referrals.length;
+      });
       if (showToasts) {
         _showNewReferralToasts(referrals);
       }
@@ -1131,7 +1135,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               _DashboardCard(
                                 icon: Icons.swap_horiz_outlined,
                                 title: 'Referencias',
-                                description: 'Canalizacion entre areas SASU',
+                                description:
+                                    'Referencias y contrarreferencias SASU',
                                 color: Colors.indigo[700]!,
                                 onTap: () async {
                                   final allowed = await _checkPermission(
@@ -1142,7 +1147,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   await _openReferralsScreen();
                                 },
                                 width: cardWidth,
-                                badge: '2.7',
+                                badge: _pendingReferralRequests > 0
+                                    ? '$_pendingReferralRequests pendientes'
+                                    : '2.7',
                               ),
                             );
                           }

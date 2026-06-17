@@ -1,3 +1,28 @@
+enum ReferralStatus {
+  draft('draft'),
+  sent('sent'),
+  received('received'),
+  accepted('accepted'),
+  scheduled('scheduled'),
+  attended('attended'),
+  closed('closed'),
+  cancelled('cancelled');
+
+  final String value;
+
+  const ReferralStatus(this.value);
+
+  static ReferralStatus? fromValue(String value) {
+    for (final status in ReferralStatus.values) {
+      if (status.value == value) return status;
+    }
+    return null;
+  }
+}
+
+typedef Referral = ReferralAdminModel;
+typedef CounterReferral = ReferralCounterReferralModel;
+
 class ReferralAdminModel {
   final String id;
   final ReferralStudentModel student;
