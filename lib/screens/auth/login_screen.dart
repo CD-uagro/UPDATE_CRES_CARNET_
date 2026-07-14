@@ -6,6 +6,8 @@ import '../dashboard_screen.dart';
 import '../../data/auth_service.dart';
 import '../../data/db.dart' as app_db;
 import '../../services/version_service.dart';
+import '../../config/app_config.dart';
+import '../../data/demo/loyola_demo_data.dart';
 
 const Color _mockupBlue = Color(0xFF072B72);
 const Color _mockupDeepBlue = Color(0xFF041D4D);
@@ -27,7 +29,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  String _selectedCampus = 'cres-llano-largo'; // Actualizado al nuevo formato
+  String _selectedCampus =
+      AppConfig.isLoyolaDemo ? LoyolaDemoData.campus : 'cres-llano-largo';
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
@@ -37,144 +40,160 @@ class _LoginScreenState extends State<LoginScreen> {
   static const Color _rojo = Color(0xFFC8102E);
   static const Color _dorado = Color(0xFFFFB81C);
   // 88 Instituciones UAGro - Sincronizado con backend
-  final List<Map<String, String>> _campusList = [
-    // CRES - Centros Regionales de Educación Superior (6)
-    {'value': 'cres-cruz-grande', 'label': 'CRES Cruz Grande'},
-    {'value': 'cres-zumpango', 'label': 'CRES Zumpango del Río'},
-    {'value': 'cres-taxco-viejo', 'label': 'CRES Taxco el Viejo'},
-    {'value': 'cres-huamuxtitlan', 'label': 'CRES Huamuxtitlán'},
-    {'value': 'cres-llano-largo', 'label': 'CRES Llano Largo'},
-    {'value': 'cres-tecpan', 'label': 'CRES Tecpan de Galeana'},
+  List<Map<String, String>> get _campusList => AppConfig.isLoyolaDemo
+      ? const [
+          {'value': LoyolaDemoData.campus, 'label': 'LOYOLA - Campus Demo'},
+        ]
+      : const [
+          // CRES - Centros Regionales de Educación Superior (6)
+          {'value': 'cres-cruz-grande', 'label': 'CRES Cruz Grande'},
+          {'value': 'cres-zumpango', 'label': 'CRES Zumpango del Río'},
+          {'value': 'cres-taxco-viejo', 'label': 'CRES Taxco el Viejo'},
+          {'value': 'cres-huamuxtitlan', 'label': 'CRES Huamuxtitlán'},
+          {'value': 'cres-llano-largo', 'label': 'CRES Llano Largo'},
+          {'value': 'cres-tecpan', 'label': 'CRES Tecpan de Galeana'},
 
-    // Clínicas Universitarias (4)
-    {
-      'value': 'clinica-chilpancingo',
-      'label': 'Clínica Universitaria Chilpancingo'
-    },
-    {'value': 'clinica-acapulco', 'label': 'Clínica Universitaria Acapulco'},
-    {'value': 'clinica-iguala', 'label': 'Clínica Universitaria Iguala'},
-    {'value': 'clinica-ometepec', 'label': 'Clínica Universitaria Ometepec'},
+          // Clínicas Universitarias (4)
+          {
+            'value': 'clinica-chilpancingo',
+            'label': 'Clínica Universitaria Chilpancingo'
+          },
+          {
+            'value': 'clinica-acapulco',
+            'label': 'Clínica Universitaria Acapulco'
+          },
+          {'value': 'clinica-iguala', 'label': 'Clínica Universitaria Iguala'},
+          {
+            'value': 'clinica-ometepec',
+            'label': 'Clínica Universitaria Ometepec'
+          },
 
-    // Facultades (20)
-    {
-      'value': 'fac-gobierno',
-      'label': 'Facultad de Ciencias Políticas y Gobierno'
-    },
-    {
-      'value': 'fac-arquitectura',
-      'label': 'Facultad de Arquitectura y Urbanismo'
-    },
-    {
-      'value': 'fac-quimico',
-      'label': 'Facultad de Ciencias Químico Biológicas'
-    },
-    {
-      'value': 'fac-comunicacion',
-      'label': 'Facultad de Ciencias de la Comunicación'
-    },
-    {
-      'value': 'fac-derecho-chil',
-      'label': 'Facultad de Derecho (Chilpancingo)'
-    },
-    {'value': 'fac-filosofia', 'label': 'Facultad de Filosofía y Letras'},
-    {'value': 'fac-ingenieria', 'label': 'Facultad de Ingeniería'},
-    {
-      'value': 'fac-matematicas-centro',
-      'label': 'Facultad de Matemáticas (Centro)'
-    },
-    {
-      'value': 'fac-contaduria',
-      'label': 'Facultad de Contaduría y Administración'
-    },
-    {'value': 'fac-derecho-aca', 'label': 'Facultad de Derecho (Acapulco)'},
-    {'value': 'fac-ecologia', 'label': 'Facultad de Ecología Marina'},
-    {'value': 'fac-economia', 'label': 'Facultad de Economía'},
-    {'value': 'fac-enfermeria2', 'label': 'Facultad de Enfermería 2'},
-    {'value': 'fac-matematicas-sur', 'label': 'Facultad de Matemáticas (Sur)'},
-    {'value': 'fac-lenguas', 'label': 'Facultad de Lenguas Extranjeras'},
-    {'value': 'fac-medicina', 'label': 'Facultad de Medicina'},
-    {'value': 'fac-odontologia', 'label': 'Facultad de Odontología'},
-    {'value': 'fac-turismo', 'label': 'Facultad de Turismo'},
-    {
-      'value': 'fac-agropecuarias',
-      'label': 'Facultad de Ciencias Agropecuarias'
-    },
-    {
-      'value': 'fac-matematicas-norte',
-      'label': 'Facultad de Matemáticas (Norte)'
-    },
+          // Facultades (20)
+          {
+            'value': 'fac-gobierno',
+            'label': 'Facultad de Ciencias Políticas y Gobierno'
+          },
+          {
+            'value': 'fac-arquitectura',
+            'label': 'Facultad de Arquitectura y Urbanismo'
+          },
+          {
+            'value': 'fac-quimico',
+            'label': 'Facultad de Ciencias Químico Biológicas'
+          },
+          {
+            'value': 'fac-comunicacion',
+            'label': 'Facultad de Ciencias de la Comunicación'
+          },
+          {
+            'value': 'fac-derecho-chil',
+            'label': 'Facultad de Derecho (Chilpancingo)'
+          },
+          {'value': 'fac-filosofia', 'label': 'Facultad de Filosofía y Letras'},
+          {'value': 'fac-ingenieria', 'label': 'Facultad de Ingeniería'},
+          {
+            'value': 'fac-matematicas-centro',
+            'label': 'Facultad de Matemáticas (Centro)'
+          },
+          {
+            'value': 'fac-contaduria',
+            'label': 'Facultad de Contaduría y Administración'
+          },
+          {
+            'value': 'fac-derecho-aca',
+            'label': 'Facultad de Derecho (Acapulco)'
+          },
+          {'value': 'fac-ecologia', 'label': 'Facultad de Ecología Marina'},
+          {'value': 'fac-economia', 'label': 'Facultad de Economía'},
+          {'value': 'fac-enfermeria2', 'label': 'Facultad de Enfermería 2'},
+          {
+            'value': 'fac-matematicas-sur',
+            'label': 'Facultad de Matemáticas (Sur)'
+          },
+          {'value': 'fac-lenguas', 'label': 'Facultad de Lenguas Extranjeras'},
+          {'value': 'fac-medicina', 'label': 'Facultad de Medicina'},
+          {'value': 'fac-odontologia', 'label': 'Facultad de Odontología'},
+          {'value': 'fac-turismo', 'label': 'Facultad de Turismo'},
+          {
+            'value': 'fac-agropecuarias',
+            'label': 'Facultad de Ciencias Agropecuarias'
+          },
+          {
+            'value': 'fac-matematicas-norte',
+            'label': 'Facultad de Matemáticas (Norte)'
+          },
 
-    // Preparatorias (50)
-    {'value': 'prep-1', 'label': 'Preparatoria 1'},
-    {'value': 'prep-2', 'label': 'Preparatoria 2'},
-    {'value': 'prep-3', 'label': 'Preparatoria 3'},
-    {'value': 'prep-4', 'label': 'Preparatoria 4'},
-    {'value': 'prep-5', 'label': 'Preparatoria 5'},
-    {'value': 'prep-6', 'label': 'Preparatoria 6'},
-    {'value': 'prep-7', 'label': 'Preparatoria 7'},
-    {'value': 'prep-8', 'label': 'Preparatoria 8'},
-    {'value': 'prep-9', 'label': 'Preparatoria 9'},
-    {'value': 'prep-10', 'label': 'Preparatoria 10'},
-    {'value': 'prep-11', 'label': 'Preparatoria 11'},
-    {'value': 'prep-12', 'label': 'Preparatoria 12'},
-    {'value': 'prep-13', 'label': 'Preparatoria 13'},
-    {'value': 'prep-14', 'label': 'Preparatoria 14'},
-    {'value': 'prep-15', 'label': 'Preparatoria 15'},
-    {'value': 'prep-16', 'label': 'Preparatoria 16'},
-    {'value': 'prep-17', 'label': 'Preparatoria 17'},
-    {'value': 'prep-18', 'label': 'Preparatoria 18'},
-    {'value': 'prep-19', 'label': 'Preparatoria 19'},
-    {'value': 'prep-20', 'label': 'Preparatoria 20'},
-    {'value': 'prep-21', 'label': 'Preparatoria 21'},
-    {'value': 'prep-22', 'label': 'Preparatoria 22'},
-    {'value': 'prep-23', 'label': 'Preparatoria 23'},
-    {'value': 'prep-24', 'label': 'Preparatoria 24'},
-    {'value': 'prep-25', 'label': 'Preparatoria 25'},
-    {'value': 'prep-26', 'label': 'Preparatoria 26'},
-    {'value': 'prep-27', 'label': 'Preparatoria 27'},
-    {'value': 'prep-28', 'label': 'Preparatoria 28'},
-    {'value': 'prep-29', 'label': 'Preparatoria 29'},
-    {'value': 'prep-30', 'label': 'Preparatoria 30'},
-    {'value': 'prep-31', 'label': 'Preparatoria 31'},
-    {'value': 'prep-32', 'label': 'Preparatoria 32'},
-    {'value': 'prep-33', 'label': 'Preparatoria 33'},
-    {'value': 'prep-34', 'label': 'Preparatoria 34'},
-    {'value': 'prep-35', 'label': 'Preparatoria 35'},
-    {'value': 'prep-36', 'label': 'Preparatoria 36'},
-    {'value': 'prep-37', 'label': 'Preparatoria 37'},
-    {'value': 'prep-38', 'label': 'Preparatoria 38'},
-    {'value': 'prep-39', 'label': 'Preparatoria 39'},
-    {'value': 'prep-40', 'label': 'Preparatoria 40'},
-    {'value': 'prep-41', 'label': 'Preparatoria 41'},
-    {'value': 'prep-42', 'label': 'Preparatoria 42'},
-    {'value': 'prep-43', 'label': 'Preparatoria 43'},
-    {'value': 'prep-44', 'label': 'Preparatoria 44'},
-    {'value': 'prep-45', 'label': 'Preparatoria 45'},
-    {'value': 'prep-46', 'label': 'Preparatoria 46'},
-    {'value': 'prep-47', 'label': 'Preparatoria 47'},
-    {'value': 'prep-48', 'label': 'Preparatoria 48'},
-    {'value': 'prep-49', 'label': 'Preparatoria 49'},
-    {'value': 'prep-50', 'label': 'Preparatoria 50'},
+          // Preparatorias (50)
+          {'value': 'prep-1', 'label': 'Preparatoria 1'},
+          {'value': 'prep-2', 'label': 'Preparatoria 2'},
+          {'value': 'prep-3', 'label': 'Preparatoria 3'},
+          {'value': 'prep-4', 'label': 'Preparatoria 4'},
+          {'value': 'prep-5', 'label': 'Preparatoria 5'},
+          {'value': 'prep-6', 'label': 'Preparatoria 6'},
+          {'value': 'prep-7', 'label': 'Preparatoria 7'},
+          {'value': 'prep-8', 'label': 'Preparatoria 8'},
+          {'value': 'prep-9', 'label': 'Preparatoria 9'},
+          {'value': 'prep-10', 'label': 'Preparatoria 10'},
+          {'value': 'prep-11', 'label': 'Preparatoria 11'},
+          {'value': 'prep-12', 'label': 'Preparatoria 12'},
+          {'value': 'prep-13', 'label': 'Preparatoria 13'},
+          {'value': 'prep-14', 'label': 'Preparatoria 14'},
+          {'value': 'prep-15', 'label': 'Preparatoria 15'},
+          {'value': 'prep-16', 'label': 'Preparatoria 16'},
+          {'value': 'prep-17', 'label': 'Preparatoria 17'},
+          {'value': 'prep-18', 'label': 'Preparatoria 18'},
+          {'value': 'prep-19', 'label': 'Preparatoria 19'},
+          {'value': 'prep-20', 'label': 'Preparatoria 20'},
+          {'value': 'prep-21', 'label': 'Preparatoria 21'},
+          {'value': 'prep-22', 'label': 'Preparatoria 22'},
+          {'value': 'prep-23', 'label': 'Preparatoria 23'},
+          {'value': 'prep-24', 'label': 'Preparatoria 24'},
+          {'value': 'prep-25', 'label': 'Preparatoria 25'},
+          {'value': 'prep-26', 'label': 'Preparatoria 26'},
+          {'value': 'prep-27', 'label': 'Preparatoria 27'},
+          {'value': 'prep-28', 'label': 'Preparatoria 28'},
+          {'value': 'prep-29', 'label': 'Preparatoria 29'},
+          {'value': 'prep-30', 'label': 'Preparatoria 30'},
+          {'value': 'prep-31', 'label': 'Preparatoria 31'},
+          {'value': 'prep-32', 'label': 'Preparatoria 32'},
+          {'value': 'prep-33', 'label': 'Preparatoria 33'},
+          {'value': 'prep-34', 'label': 'Preparatoria 34'},
+          {'value': 'prep-35', 'label': 'Preparatoria 35'},
+          {'value': 'prep-36', 'label': 'Preparatoria 36'},
+          {'value': 'prep-37', 'label': 'Preparatoria 37'},
+          {'value': 'prep-38', 'label': 'Preparatoria 38'},
+          {'value': 'prep-39', 'label': 'Preparatoria 39'},
+          {'value': 'prep-40', 'label': 'Preparatoria 40'},
+          {'value': 'prep-41', 'label': 'Preparatoria 41'},
+          {'value': 'prep-42', 'label': 'Preparatoria 42'},
+          {'value': 'prep-43', 'label': 'Preparatoria 43'},
+          {'value': 'prep-44', 'label': 'Preparatoria 44'},
+          {'value': 'prep-45', 'label': 'Preparatoria 45'},
+          {'value': 'prep-46', 'label': 'Preparatoria 46'},
+          {'value': 'prep-47', 'label': 'Preparatoria 47'},
+          {'value': 'prep-48', 'label': 'Preparatoria 48'},
+          {'value': 'prep-49', 'label': 'Preparatoria 49'},
+          {'value': 'prep-50', 'label': 'Preparatoria 50'},
 
-    // Rectoría y Coordinaciones Regionales (8)
-    {'value': 'rectoria', 'label': 'Rectoría'},
-    {'value': 'coord-sur', 'label': 'Coordinación Regional Sur'},
-    {'value': 'coord-centro', 'label': 'Coordinación Regional Centro'},
-    {'value': 'coord-norte', 'label': 'Coordinación Regional Norte'},
-    {
-      'value': 'coord-costa-chica',
-      'label': 'Coordinación Regional Costa Chica'
-    },
-    {
-      'value': 'coord-costa-grande',
-      'label': 'Coordinación Regional Costa Grande'
-    },
-    {'value': 'coord-montana', 'label': 'Coordinación Regional Montaña'},
-    {
-      'value': 'coord-tierra-caliente',
-      'label': 'Coordinación Regional Tierra Caliente'
-    },
-  ];
+          // Rectoría y Coordinaciones Regionales (8)
+          {'value': 'rectoria', 'label': 'Rectoría'},
+          {'value': 'coord-sur', 'label': 'Coordinación Regional Sur'},
+          {'value': 'coord-centro', 'label': 'Coordinación Regional Centro'},
+          {'value': 'coord-norte', 'label': 'Coordinación Regional Norte'},
+          {
+            'value': 'coord-costa-chica',
+            'label': 'Coordinación Regional Costa Chica'
+          },
+          {
+            'value': 'coord-costa-grande',
+            'label': 'Coordinación Regional Costa Grande'
+          },
+          {'value': 'coord-montana', 'label': 'Coordinación Regional Montaña'},
+          {
+            'value': 'coord-tierra-caliente',
+            'label': 'Coordinación Regional Tierra Caliente'
+          },
+        ];
 
   @override
   void dispose() {
@@ -372,8 +391,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ? CrossAxisAlignment.center
                       : CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Universidad Autónoma de Guerrero',
+                    Text(
+                      AppConfig.current.institutionName,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -382,7 +401,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'CRES Llano Largo',
+                      AppConfig.current.environmentName,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.76),
                         fontSize: 13,
@@ -396,7 +415,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           SizedBox(height: compact ? 24 : 48),
           Text(
-            'SASU',
+            AppConfig.current.iconText,
             textAlign: compact ? TextAlign.center : TextAlign.start,
             style: const TextStyle(
               color: Colors.white,
@@ -407,7 +426,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Sistema de Atención en Salud Universitaria',
+            AppConfig.current.systemName,
             textAlign: compact ? TextAlign.center : TextAlign.start,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.92),
@@ -427,7 +446,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           const SizedBox(height: 22),
           Text(
-            'Dirección de Innovación en la Gestión de la Salud Universitaria',
+            AppConfig.current.technologyRepresentative,
             textAlign: compact ? TextAlign.center : TextAlign.start,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.82),
@@ -507,7 +526,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    child: const Center(child: _UagroSeal(size: 44)),
+                    child: const Center(child: _InstitutionSeal(size: 44)),
                   ),
                   const SizedBox(width: 28),
                   Expanded(
@@ -603,6 +622,43 @@ class _LoginScreenState extends State<LoginScreen> {
                         });
                       },
               ),
+              if (AppConfig.isLoyolaDemo) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color:
+                        AppConfig.current.colors.accent.withValues(alpha: 0.10),
+                    border: Border.all(
+                      color: AppConfig.current.colors.accent
+                          .withValues(alpha: 0.45),
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.science_outlined,
+                        color: AppConfig.current.colors.accent,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          AppConfig.current.clinicalDisclaimer,
+                          style: TextStyle(
+                            color: AppConfig.current.colors.primaryDark,
+                            fontSize: 12,
+                            height: 1.25,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 34),
               if (_errorMessage != null) ...[
                 Container(
@@ -951,7 +1007,7 @@ class _UniversityHeader extends StatelessWidget {
     if (compact) {
       return Column(
         children: [
-          const _UagroSeal(size: 72),
+          const _InstitutionSeal(size: 72),
           const SizedBox(height: 12),
           _universityTexts(TextAlign.center),
         ],
@@ -961,7 +1017,7 @@ class _UniversityHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _UagroSeal(size: 150),
+        const _InstitutionSeal(size: 150),
         const SizedBox(width: 44),
         Expanded(child: _universityTexts(TextAlign.start)),
       ],
@@ -975,7 +1031,7 @@ class _UniversityHeader extends StatelessWidget {
           : CrossAxisAlignment.start,
       children: [
         Text(
-          'UNIVERSIDAD AUTÓNOMA\nDE GUERRERO',
+          AppConfig.current.institutionName.toUpperCase(),
           textAlign: align,
           style: const TextStyle(
             color: _mockupDeepBlue,
@@ -1003,10 +1059,10 @@ class _UniversityHeader extends StatelessWidget {
   }
 }
 
-class _UagroSeal extends StatelessWidget {
+class _InstitutionSeal extends StatelessWidget {
   final double size;
 
-  const _UagroSeal({required this.size});
+  const _InstitutionSeal({required this.size});
 
   @override
   Widget build(BuildContext context) {
@@ -1032,7 +1088,7 @@ class _UagroSeal extends StatelessWidget {
           Positioned(
             bottom: size * 0.18,
             child: Text(
-              'UAGro',
+              AppConfig.current.logoText,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: size * 0.11,
@@ -1064,7 +1120,7 @@ class _SupportBlock extends StatelessWidget {
               const Icon(Icons.question_mark, color: _mockupDeepBlue, size: 22),
         ),
         const SizedBox(width: 14),
-        const Column(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -1077,7 +1133,7 @@ class _SupportBlock extends StatelessWidget {
             ),
             SizedBox(height: 3),
             Text(
-              'innovasalud@uagro.mx',
+              AppConfig.current.supportEmail,
               style: TextStyle(color: _mockupDeepBlue, fontSize: 12),
             ),
           ],
@@ -1124,7 +1180,7 @@ class _HeroBrand extends StatelessWidget {
             ),
             SizedBox(width: compact ? 18 : 38),
             Text(
-              'SASU',
+              AppConfig.current.iconText,
               style: TextStyle(
                 color: _mockupBlue,
                 fontSize: compact ? 58 : 96,
@@ -1136,7 +1192,7 @@ class _HeroBrand extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         Text(
-          'Sistema de Atención en\nSalud Universitaria',
+          AppConfig.current.systemName,
           textAlign: compact ? TextAlign.center : TextAlign.start,
           style: TextStyle(
             color: _mockupDeepBlue,
@@ -1149,7 +1205,7 @@ class _HeroBrand extends StatelessWidget {
         Container(width: 66, height: 4, color: _mockupRed),
         const SizedBox(height: 26),
         Text(
-          'Dirección de Innovación en la\nGestión de la Salud Universitaria',
+          AppConfig.current.institutionalSubtitle,
           textAlign: compact ? TextAlign.center : TextAlign.start,
           style: TextStyle(
             color: _mockupDeepBlue,
@@ -1299,17 +1355,17 @@ class _StatusFooter extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 760;
-        final legal = const Row(
+        final legal = Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '© 2026 Universidad Autónoma de Guerrero',
+              '2026 ${AppConfig.current.institutionName}',
               style: TextStyle(color: _mockupDeepBlue, fontSize: 12),
             ),
-            SizedBox(width: 24),
-            SizedBox(height: 20, child: VerticalDivider()),
-            SizedBox(width: 24),
-            Text(
+            const SizedBox(width: 24),
+            const SizedBox(height: 20, child: VerticalDivider()),
+            const SizedBox(width: 24),
+            const Text(
               'Todos los derechos reservados',
               style: TextStyle(color: _mockupDeepBlue, fontSize: 12),
             ),
@@ -1340,7 +1396,9 @@ class _StatusFooter extends StatelessWidget {
                       color: Colors.green[700], size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    'Sistema en línea',
+                    AppConfig.current.hasBackend
+                        ? 'Sistema en linea'
+                        : 'Modo local demo',
                     style: TextStyle(
                       color: Colors.green[800],
                       fontSize: 12,
@@ -1354,13 +1412,19 @@ class _StatusFooter extends StatelessWidget {
                 height: 22,
                 color: _mockupDeepBlue.withValues(alpha: 0.22),
               ),
-              const Row(
+              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.access_time, color: _mockupDeepBlue, size: 18),
-                  SizedBox(width: 8),
+                  const Icon(
+                    Icons.access_time,
+                    color: _mockupDeepBlue,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    'Última actualización: 08/06/2026',
+                    AppConfig.current.environmentBanner.isEmpty
+                        ? 'Ultima actualizacion: 08/06/2026'
+                        : AppConfig.current.environmentBanner,
                     style: TextStyle(color: _mockupDeepBlue, fontSize: 12),
                   ),
                 ],

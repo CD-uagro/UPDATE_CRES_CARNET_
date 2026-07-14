@@ -9,6 +9,8 @@ import 'data/db.dart' as DB;
 import 'data/auth_service.dart';
 import 'services/version_service.dart';
 import 'services/auto_sync_service.dart';
+import 'config/app_config.dart';
+import 'data/demo/loyola_demo_data.dart';
 // Tema institucional UAGro
 import 'ui/app_theme.dart';
 import 'ui/app_theme_mobile.dart'; // Tema adaptable para móvil
@@ -25,14 +27,17 @@ void main() async {
 
   // Diagnóstico de API_BASE_URL solo en debug
   if (kDebugMode) {
-    const String apiBase = String.fromEnvironment('API_BASE_URL',
-        defaultValue: 'https://fastapi-backend-o7ks.onrender.com');
-    print('API_BASE_URL=' + apiBase);
+    print('APP_VARIANT=${AppConfig.current.internalId}');
+    print(
+        'API_BASE_URL=${AppConfig.current.backendBaseUrl.isEmpty ? "(sin backend demo)" : AppConfig.current.backendBaseUrl}');
     print(
         'Platform: ${MobileAdaptive.isMobilePlatform ? "Mobile (Android/iOS)" : "Desktop (Windows/Linux/Mac)"}');
   }
 
   final db = DB.AppDatabase(); // Instancia de la base local (Drift)
+  if (AppConfig.isLoyolaDemo) {
+    await LoyolaDemoData.seedLocalDatabase(db);
+  }
   runApp(MyApp(db: db));
 }
 
@@ -43,7 +48,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'CENTRO REGIONAL DE EDUCACION SUPERIOR LLANO LARGO',
+      title: AppConfig.current.windowTitle,
       debugShowCheckedModeBanner: false,
       // Aplicamos el tema institucional UAGro
       // En móvil (Android/iOS) se aplicará automáticamente el tema adaptable

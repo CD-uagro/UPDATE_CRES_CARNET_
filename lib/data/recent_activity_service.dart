@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config/app_config.dart';
 import 'auth_service.dart';
 
 class RecentPatientActivity {
@@ -312,11 +313,15 @@ class RecentActivityService {
   }
 
   static String _patientsKey(AuthUser user) {
-    return 'recent_patients_v1_${_userKeyPart(user)}_${user.campus}';
+    return AppConfig.scopedKey(
+      'recent_patients_v1_${_userKeyPart(user)}_${user.campus}',
+    );
   }
 
   static String _notesKey(AuthUser user) {
-    return 'recent_notes_v1_${_userKeyPart(user)}_${user.campus}';
+    return AppConfig.scopedKey(
+      'recent_notes_v1_${_userKeyPart(user)}_${user.campus}',
+    );
   }
 
   static String _userKeyPart(AuthUser user) {

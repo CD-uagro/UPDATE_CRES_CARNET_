@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
 import 'version_comparator.dart';
+import '../config/app_config.dart';
 
 /// Modelo para la información de versión
 class VersionInfo {
@@ -69,8 +70,12 @@ class UpdateCheckResponse {
 
 /// Servicio para gestionar actualizaciones de la aplicación
 class UpdateService {
-  static const String baseUrl = 'https://fastapi-backend-o7ks.onrender.com';
+  static String get baseUrl => AppConfig.current.updatesBaseUrl;
   static const Duration timeout = Duration(seconds: 10);
+
+  static bool get updatesEnabled =>
+      AppConfig.current.features.updatesEnabled &&
+      AppConfig.current.hasUpdatesBackend;
 
   static UpdateCheckResponse _guardAgainstDowngrade({
     required UpdateCheckResponse response,
@@ -143,6 +148,15 @@ class UpdateService {
     required int currentBuild,
     String platform = 'windows',
   }) async {
+    if (!updatesEnabled) {
+      return UpdateCheckResponse(
+        updateAvailable: false,
+        currentVersion: currentVersion,
+        latestVersion: null,
+        message: 'Actualizaciones desactivadas para esta variante.',
+      );
+    }
+
     try {
       final url = Uri.parse('$baseUrl/updates/check');
 
@@ -204,6 +218,10 @@ class UpdateService {
   ///
   /// No requiere versión actual, solo retorna la última versión
   static Future<VersionInfo> getLatestVersion() async {
+    if (!updatesEnabled) {
+      throw Exception('Actualizaciones desactivadas para esta variante.');
+    }
+
     try {
       final url = Uri.parse('$baseUrl/updates/latest');
 
@@ -246,6 +264,10 @@ class UpdateService {
     String? version,
     int? limit,
   }) async {
+    if (!updatesEnabled) {
+      return const [];
+    }
+
     try {
       var url = Uri.parse('$baseUrl/updates/changelog');
 
@@ -286,6 +308,11 @@ class UpdateService {
 
   /// Verifica el estado del servicio de actualizaciones
   static Future<bool> checkServiceHealth() async {
+    if (!updatesEnabled) {
+      debugPrint('Actualizaciones desactivadas para esta variante');
+      return false;
+    }
+
     try {
       final url = Uri.parse('$baseUrl/updates/health');
 

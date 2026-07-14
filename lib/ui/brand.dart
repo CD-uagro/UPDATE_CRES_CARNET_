@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_config.dart';
 
 /// Colores institucionales Universidad Autónoma de Guerrero (UAGro)
 /// TODO: ajustar a códigos oficiales UAGro una vez confirmados
@@ -30,6 +31,27 @@ class UAGroColors {
 /// Función para obtener el logo institucional UAGro
 /// Si existe el asset, lo retorna; si no, retorna un placeholder
 Widget maybeUAGroLogo({double size = 48}) {
+  if (AppConfig.isLoyolaDemo) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppConfig.current.colors.primary,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        'LOY',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: size * 0.24,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0,
+        ),
+      ),
+    );
+  }
+
   // TODO: verificar si existe assets/images/uagro_logo.png
   // Por ahora usamos un placeholder institucional
   return Container(

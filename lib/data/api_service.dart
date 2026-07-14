@@ -7,10 +7,13 @@ import '../models/referral_admin_model.dart';
 import '../models/ticket_admin_model.dart';
 import '../utils/sync_logger.dart';
 import '../utils/clinical_datetime.dart';
+import '../config/app_config.dart';
 
 /// URL del backend, configurable via environment o fallback
-const String baseUrl = String.fromEnvironment('API_BASE_URL',
-    defaultValue: 'https://fastapi-backend-o7ks.onrender.com');
+String get baseUrl => AppConfig.current.backendBaseUrl;
+bool get remoteApiEnabled =>
+    AppConfig.current.features.remoteOperationsEnabled ||
+    AppConfig.current.hasBackend;
 
 class ApiService {
   /// Timeout para requests normales (aumentado para cold start)
@@ -29,6 +32,11 @@ class ApiService {
   /// Verificación rápida de conectividad (para no bloquear guardado)
   /// NOTA: En Windows con Render.com dormido puede tardar 5-8 segundos
   static Future<bool> hasInternetConnection() async {
+    if (!remoteApiEnabled) {
+      print(
+          '[DEMO] Operaciones remotas bloqueadas: no hay backend demo configurado.');
+      return false;
+    }
     try {
       final url = Uri.parse('$baseUrl/health');
       final resp = await http.get(url).timeout(_quickCheckTimeout);

@@ -28,6 +28,7 @@ import 'package:cres_carnets_ibmcloud/services/update_manager.dart';
 import 'package:cres_carnets_ibmcloud/widgets/appointment_toast.dart';
 import 'package:cres_carnets_ibmcloud/widgets/pending_appointments_reminder_toast.dart';
 import 'package:cres_carnets_ibmcloud/widgets/referral_toast.dart';
+import 'package:cres_carnets_ibmcloud/config/app_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Dashboard principal después del login
@@ -111,6 +112,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
 
       // Verificar actualizaciones automáticamente después de cargar el dashboard
+      if (!AppConfig.current.features.updatesEnabled) {
+        debugPrint(
+            'Actualizaciones desactivadas para ${AppConfig.current.internalId}');
+        return;
+      }
+
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted && _updateManager != null) {
           _updateManager!.checkForUpdatesAutomatic(context);
@@ -167,12 +174,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _canViewReferrals = canReferrals;
       });
     }
-    if (canAppointments) {
+    if (canAppointments && remoteApiEnabled) {
       _startAppointmentPolling();
     } else {
       _stopAppointmentPolling();
     }
-    if (canReferrals) {
+    if (canReferrals && remoteApiEnabled) {
       _startReferralPolling();
     } else {
       _stopReferralPolling();
@@ -510,6 +517,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _handleSyncPendingData() async {
+    if (!remoteApiEnabled) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Modo local de demostracion'),
+          content: Text(AppConfig.current.clinicalDisclaimer),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     // Mostrar indicador de progreso
     showDialog(
       context: context,
@@ -725,7 +749,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
               break;
             case 'update':
-              if (_updateManager != null) {
+              if (_updateManager != null &&
+                  AppConfig.current.features.updatesEnabled) {
                 _updateManager!.checkForUpdatesManual(context);
               }
               break;
@@ -847,7 +872,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         icon: const Icon(Icons.system_update),
         tooltip: 'Buscar actualizaciones',
         onPressed: () {
-          if (_updateManager != null) {
+          if (_updateManager != null &&
+              AppConfig.current.features.updatesEnabled) {
             _updateManager!.checkForUpdatesManual(context);
           }
         },
@@ -888,15 +914,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           backgroundColor: UAGroColors.grisClaro,
           appBar: AppBar(
             title: _loadingUser
-                ? Text(isMobile ? 'CRES' : 'CRES Carnets - UAGro')
+                ? Text(isMobile
+                    ? AppConfig.current.shortName
+                    : AppConfig.current.systemName)
                 : isMobile
-                    ? const Text('CRES') // Solo nombre corto en móvil
+                    ? Text(AppConfig.current.shortName)
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            'CRES Carnets - UAGro',
+                          Text(
+                            AppConfig.current.systemName,
                             style: TextStyle(fontSize: 16),
                           ),
                           if (_currentUser != null)
@@ -933,7 +961,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       _StatusStrip(
                         onSync: _handleSyncPendingData,
                         onUpdates: () {
-                          if (_updateManager != null) {
+                          if (_updateManager != null &&
+                              AppConfig.current.features.updatesEnabled) {
                             _updateManager!.checkForUpdatesManual(context);
                           }
                         },
@@ -966,8 +995,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                       const SizedBox(height: 18),
                       _SectionHeader(
-                        title: 'Centro de Servicios Universitarios',
-                        subtitle: 'SASU 2.5 - Universidad Autónoma de Guerrero',
+                        title: AppConfig.isLoyolaDemo
+                            ? 'Centro de Servicios Escolares'
+                            : 'Centro de Servicios Universitarios',
+                        subtitle: AppConfig.isLoyolaDemo
+                            ? AppConfig.current.environmentBanner
+                            : 'SASU 2.5 - Universidad Autonoma de Guerrero',
                       ),
                       const SizedBox(height: 12),
                       LayoutBuilder(
@@ -1135,8 +1168,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               _DashboardCard(
                                 icon: Icons.swap_horiz_outlined,
                                 title: 'Referencias',
-                                description:
-                                    'Referencias y contrarreferencias SASU',
+                                description: AppConfig.isLoyolaDemo
+                                    ? 'Referencias y seguimientos demo'
+                                    : 'Referencias y contrarreferencias SASU',
                                 color: Colors.indigo[700]!,
                                 onTap: () async {
                                   final allowed = await _checkPermission(
@@ -1383,7 +1417,7 @@ class _InstitutionalHeader extends StatelessWidget {
                 wide ? CrossAxisAlignment.start : CrossAxisAlignment.center,
             children: [
               Text(
-                'Universidad Autónoma de Guerrero',
+                AppConfig.current.institutionName,
                 textAlign: wide ? TextAlign.start : TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
@@ -1393,7 +1427,7 @@ class _InstitutionalHeader extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'SASU',
+                AppConfig.current.iconText,
                 textAlign: wide ? TextAlign.start : TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
@@ -1660,20 +1694,22 @@ class _ObservatoryCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 14),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Observatorio SASU',
-                      style: TextStyle(
+                      AppConfig.isLoyolaDemo
+                          ? 'Indicadores Demo'
+                          : 'Observatorio SASU',
+                      style: const TextStyle(
                         color: UAGroColors.azulMarino,
                         fontWeight: FontWeight.w900,
                         fontSize: 16,
                       ),
                     ),
-                    SizedBox(height: 3),
-                    Text(
+                    const SizedBox(height: 3),
+                    const Text(
                       'Indicadores y seguimiento institucional',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,

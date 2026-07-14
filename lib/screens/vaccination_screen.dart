@@ -15,6 +15,7 @@ import 'form_screen.dart';
 import 'nueva_nota_screen.dart';
 import 'promocion_salud_screen.dart';
 import '../data/sync_vacunaciones.dart';
+import '../config/app_config.dart';
 
 /// Pantalla de gestión de campañas de vacunación
 class VaccinationScreen extends StatefulWidget {
@@ -97,13 +98,15 @@ class _VaccinationScreenState extends State<VaccinationScreen> {
 
   /// Obtener la URL base del backend
   String get _apiBaseUrl {
-    const envUrl = String.fromEnvironment('API_BASE_URL',
-        defaultValue: 'https://fastapi-backend-o7ks.onrender.com');
-    return envUrl;
+    return baseUrl;
   }
 
   /// Sincronizar vacunaciones pendientes
   Future<void> _sincronizarPendientes() async {
+    if (!remoteApiEnabled) {
+      return;
+    }
+
     try {
       final pendientes = await _db.getPendingVacunaciones();
       if (pendientes.isNotEmpty) {
@@ -616,10 +619,12 @@ class _VaccinationScreenState extends State<VaccinationScreen> {
         children: [
           brand.maybeUAGroLogo(size: 40),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'SASU - Sistema de Vacunación',
-              style: TextStyle(
+              AppConfig.isLoyolaDemo
+                  ? 'LOYOLA Salud Digital - Vacunacion'
+                  : 'SASU - Sistema de Vacunacion',
+              style: const TextStyle(
                 color: brand.UAGroColors.blue,
                 fontWeight: FontWeight.w900,
               ),
@@ -646,7 +651,11 @@ class _VaccinationScreenState extends State<VaccinationScreen> {
       (Icons.campaign_outlined, 'Promoción de Salud', false),
       (Icons.vaccines_outlined, 'Vacunación', true),
       (Icons.assessment_outlined, 'Reportes', false),
-      (Icons.monitor_heart_outlined, 'Observatorio SASU', false),
+      (
+        Icons.monitor_heart_outlined,
+        AppConfig.isLoyolaDemo ? 'Indicadores Demo' : 'Observatorio SASU',
+        false
+      ),
       (Icons.settings_outlined, 'Configuración', false),
     ];
 
@@ -669,10 +678,10 @@ class _VaccinationScreenState extends State<VaccinationScreen> {
                 children: [
                   brand.maybeUAGroLogo(size: 44),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'UNIVERSIDAD AUTÓNOMA\nDE GUERRERO',
-                      style: TextStyle(
+                      AppConfig.current.institutionName.toUpperCase(),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 11,
                         height: 1.25,
@@ -699,21 +708,24 @@ class _VaccinationScreenState extends State<VaccinationScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'SASU',
-                          style: TextStyle(
+                          AppConfig.current.iconText,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
                         Text(
-                          'Sistema de Atención\nen Salud Universitaria',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                          AppConfig.current.systemName,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -921,6 +933,7 @@ class _VaccinationScreenState extends State<VaccinationScreen> {
         _mostrarModuloEnDesarrollo();
         return;
       case 'Observatorio SASU':
+      case 'Indicadores Demo':
         _openVaccinationObservatory();
         return;
     }
@@ -930,12 +943,16 @@ class _VaccinationScreenState extends State<VaccinationScreen> {
     const url = String.fromEnvironment('SASU_OBSERVATORIO_URL');
     final uri = Uri.tryParse(url);
     if (url.trim().isEmpty || uri == null) {
-      _mostrarError('Observatorio SASU pendiente de vinculación');
+      _mostrarError(AppConfig.isLoyolaDemo
+          ? 'Indicadores demo pendientes de configurar'
+          : 'Observatorio SASU pendiente de vinculacion');
       return;
     }
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched && mounted) {
-      _mostrarError('Observatorio SASU pendiente de vinculación');
+      _mostrarError(AppConfig.isLoyolaDemo
+          ? 'Indicadores demo pendientes de configurar'
+          : 'Observatorio SASU pendiente de vinculacion');
     }
   }
 
@@ -1014,10 +1031,10 @@ class _VaccinationScreenState extends State<VaccinationScreen> {
             ),
           ),
           const SizedBox(width: 10),
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Dr. Administrador',
                 style: TextStyle(
                   color: brand.UAGroColors.blue,
@@ -1025,8 +1042,11 @@ class _VaccinationScreenState extends State<VaccinationScreen> {
                 ),
               ),
               Text(
-                'CRES Llano Largo',
-                style: TextStyle(color: brand.UAGroColors.onSurfaceVariant),
+                AppConfig.isLoyolaDemo
+                    ? 'LOYOLA - Campus Demo'
+                    : 'CRES Llano Largo',
+                style:
+                    const TextStyle(color: brand.UAGroColors.onSurfaceVariant),
               ),
             ],
           ),
@@ -3117,7 +3137,10 @@ class _VaccineCampaign {
       name: text('nombre', 'Campaña de vacunación'),
       vaccine: vaccine,
       description: text('descripcion', 'Campaña universitaria de vacunación.'),
-      responsible: text('responsable', 'SASU'),
+      responsible: text(
+        'responsable',
+        AppConfig.isLoyolaDemo ? 'LOYOLA Salud Digital' : 'SASU',
+      ),
       status: status,
       dateLabel: date,
       shortDate: date,

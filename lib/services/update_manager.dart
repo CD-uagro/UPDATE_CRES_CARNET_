@@ -6,6 +6,7 @@ import 'update_service.dart';
 import 'update_downloader.dart';
 import 'version_comparator.dart';
 import '../ui/update_dialog.dart';
+import '../config/app_config.dart';
 
 /// Coordinador principal del sistema de actualizaciones
 class UpdateManager {
@@ -35,6 +36,12 @@ class UpdateManager {
     BuildContext context, {
     bool force = false,
   }) async {
+    if (!AppConfig.current.features.updatesEnabled) {
+      debugPrint(
+          'Actualizaciones automaticas desactivadas para ${AppConfig.current.internalId}');
+      return;
+    }
+
     try {
       // Verificar si debe hacer la comprobación
       if (!force && !await _shouldCheckNow()) {
@@ -93,6 +100,16 @@ class UpdateManager {
     BuildContext context, {
     bool showNoUpdateMessage = true,
   }) async {
+    if (!AppConfig.current.features.updatesEnabled) {
+      if (context.mounted) {
+        _showErrorDialog(
+          context,
+          'Las actualizaciones estan desactivadas para ${AppConfig.current.shortName}.',
+        );
+      }
+      return;
+    }
+
     try {
       debugPrint('🔍 Verificación manual de actualizaciones...');
 
@@ -349,7 +366,7 @@ class UpdateManager {
   Future<bool> _shouldCheckNow() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final lastCheckStr = prefs.getString(_lastCheckKey);
+      final lastCheckStr = prefs.getString(AppConfig.scopedKey(_lastCheckKey));
 
       if (lastCheckStr == null) {
         return true; // Primera vez
@@ -369,7 +386,10 @@ class UpdateManager {
   Future<void> _saveLastCheckTime() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_lastCheckKey, DateTime.now().toIso8601String());
+      await prefs.setString(
+        AppConfig.scopedKey(_lastCheckKey),
+        DateTime.now().toIso8601String(),
+      );
     } catch (e) {
       debugPrint('⚠️ Error al guardar timestamp: $e');
     }
@@ -379,7 +399,7 @@ class UpdateManager {
   Future<void> _skipVersion(String version) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_skippedVersionKey, version);
+      await prefs.setString(AppConfig.scopedKey(_skippedVersionKey), version);
       debugPrint('⏭️ Versión $version marcada como omitida');
     } catch (e) {
       debugPrint('⚠️ Error al guardar versión omitida: $e');
@@ -390,7 +410,8 @@ class UpdateManager {
   Future<bool> _isVersionSkipped(String version) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final skippedVersion = prefs.getString(_skippedVersionKey);
+      final skippedVersion =
+          prefs.getString(AppConfig.scopedKey(_skippedVersionKey));
       return skippedVersion == version;
     } catch (e) {
       return false;

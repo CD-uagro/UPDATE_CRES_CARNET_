@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'offline_manager.dart';
 import 'sync_service.dart';
 import 'db.dart';
+import '../config/app_config.dart';
+import 'demo/loyola_demo_data.dart';
 
 /// Modelo de datos del usuario autenticado
 class AuthUser {
@@ -66,14 +68,13 @@ class AuthUser {
 
 /// Servicio de autenticación centralizado
 class AuthService {
-  static const String _baseUrl = 'https://fastapi-backend-o7ks.onrender.com';
+  static String get _baseUrl => AppConfig.current.backendBaseUrl;
   static const _storage = FlutterSecureStorage();
 
   // Keys para almacenamiento seguro
-  static const String _tokenKey = 'auth_token';
-  static const String _userKey = 'auth_user';
-  static const String _passwordKey =
-      'cached_password'; // Para renovación automática
+  static String get _tokenKey => AppConfig.scopedKey('auth_token');
+  static String get _userKey => AppConfig.scopedKey('auth_user');
+  static String get _passwordKey => AppConfig.scopedKey('cached_password');
 
   /// Iniciar sesión con username, password y campus
   /// Modo híbrido MEJORADO: verifica cache primero, luego intenta online con timeout corto
@@ -83,6 +84,18 @@ class AuthService {
     String? campus,
   }) async {
     // Normalizar campus (asegurar que no sea null o vacío)
+    if (AppConfig.isLoyolaDemo && !AppConfig.current.hasBackend) {
+      return _tryLoyolaLocalDemoLogin(username, password);
+    }
+
+    if (_baseUrl.trim().isEmpty) {
+      return {
+        'success': false,
+        'error':
+            'No hay backend configurado para esta variante. Revise los dart-define de ambiente.',
+      };
+    }
+
     final normalizedCampus = campus ?? 'cres-llano-largo';
     print('🔐 Iniciando login para: $username, campus: $normalizedCampus');
 
@@ -254,6 +267,36 @@ class AuthService {
       print('📴 Sin red - usando modo offline');
       return await _tryOfflineLogin(username, password, normalizedCampus);
     }
+  }
+
+  static Future<Map<String, dynamic>> _tryLoyolaLocalDemoLogin(
+    String username,
+    String password,
+  ) async {
+    final demo = AppConfig.current.demoCredentials;
+    if (demo == null ||
+        username.trim() != demo.username ||
+        password != demo.password) {
+      return {
+        'success': false,
+        'error': 'Credenciales de demostracion incorrectas',
+      };
+    }
+
+    final user = LoyolaDemoData.user();
+    final token = 'loyola_demo_${DateTime.now().millisecondsSinceEpoch}';
+    await _storage.write(key: _tokenKey, value: token);
+    await _storage.write(key: _userKey, value: jsonEncode(user.toJson()));
+    await _storage.write(key: _passwordKey, value: password);
+    await OfflineManager.enableOfflineMode();
+
+    return {
+      'success': true,
+      'user': user,
+      'token': token,
+      'mode': 'demo_local',
+      'warning': AppConfig.current.clinicalDisclaimer,
+    };
   }
 
   /// Intenta login offline validando contra cache local
@@ -669,6 +712,10 @@ class AuthService {
 
   /// Obtener el nombre formateado del campus (88 instituciones UAGro)
   static String formatCampusName(String campus) {
+    if (AppConfig.isLoyolaDemo && campus == LoyolaDemoData.campus) {
+      return 'LOYOLA - Campus Demo';
+    }
+
     final Map<String, String> campusNames = {
       // CRES - Centros Regionales de Educación Superior (6)
       'cres-cruz-grande': 'CRES Cruz Grande',

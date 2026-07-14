@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import '../config/app_config.dart';
 
 /// Gestor de conectividad y caché offline
 /// Detecta estado de red, gestiona caché de credenciales
@@ -15,11 +16,15 @@ class OfflineManager {
   static final _connectivity = Connectivity();
 
   // Keys de almacenamiento
-  static const _keyPasswordHash = 'offline_password_hash';
-  static const _keyLastLoginTimestamp = 'offline_last_login';
-  static const _keyOfflineMode = 'offline_mode_enabled';
-  static const _keySyncQueue = 'offline_sync_queue';
-  static const _keyLastSyncTimestamp = 'last_sync_timestamp';
+  static String get _keyPasswordHash =>
+      AppConfig.scopedKey('offline_password_hash');
+  static String get _keyLastLoginTimestamp =>
+      AppConfig.scopedKey('offline_last_login');
+  static String get _keyOfflineMode =>
+      AppConfig.scopedKey('offline_mode_enabled');
+  static String get _keySyncQueue => AppConfig.scopedKey('offline_sync_queue');
+  static String get _keyLastSyncTimestamp =>
+      AppConfig.scopedKey('last_sync_timestamp');
   static final _offlineModeController = StreamController<bool>.broadcast();
 
   // Configuración
@@ -79,7 +84,7 @@ class OfflineManager {
     print('💾 [CACHE] Guardando hash para usuario: $username, campus: $campus');
 
     // Crear hash seguro con PBKDF2
-    final salt = '$username:$campus:cres_carnets';
+    final salt = '$username:$campus:${AppConfig.current.storageNamespace}';
     final hash = _hashPassword(password, salt);
 
     final cacheData = {
@@ -146,7 +151,7 @@ class OfflineManager {
           '⏰ [CACHE] Cache válido (${daysSinceLastLogin} días desde último login)');
 
       // Validar hash de contraseña
-      final salt = '$username:$campus:cres_carnets';
+      final salt = '$username:$campus:${AppConfig.current.storageNamespace}';
       final expectedHash = _hashPassword(password, salt);
 
       final isValid = cacheData['hash'] == expectedHash;
