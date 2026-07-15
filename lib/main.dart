@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'screens/dashboard_screen.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/multitenant_entry_screen.dart';
 import 'data/db.dart' as DB;
 import 'data/auth_service.dart';
 import 'services/version_service.dart';
@@ -110,6 +111,10 @@ class MyApp extends StatelessWidget {
             //   autoLock: const Duration(minutes: 10),
             //   child: DashboardScreen(db: db),
             // );
+          }
+
+          if (AppConfig.isMultitenant) {
+            return MultitenantEntryScreen(db: db);
           }
 
           // Si no tiene sesión, mostrar LoginScreen
