@@ -3,6 +3,7 @@ import 'package:cres_carnets_ibmcloud/config/app_config.dart';
 import 'package:cres_carnets_ibmcloud/config/app_environment.dart';
 import 'package:cres_carnets_ibmcloud/config/environments/cres_config.dart';
 import 'package:cres_carnets_ibmcloud/config/environments/loyola_demo_config.dart';
+import 'package:cres_carnets_ibmcloud/config/environments/multitenant_config.dart';
 
 void main() {
   group('App variant configuration', () {
@@ -15,6 +16,11 @@ void main() {
     test('selects LOYOLA_DEMO from dart-define value', () {
       expect(parseAppVariant('LOYOLA_DEMO'), AppVariant.loyolaDemo);
       expect(parseAppVariant('loyola'), AppVariant.loyolaDemo);
+    });
+
+    test('selects MULTITENANT from dart-define value', () {
+      expect(parseAppVariant('MULTITENANT'), AppVariant.multitenant);
+      expect(parseAppVariant('generic'), AppVariant.multitenant);
     });
 
     test('keeps CRES production defaults in the CRES config', () {
@@ -48,6 +54,18 @@ void main() {
         loyolaDemoConfig.scopedKey('auth_token'),
         isNot(cresConfig.scopedKey('auth_token')),
       );
+      expect(
+        multitenantConfig.scopedKey('auth_token'),
+        'sasu_multitenant_auth_token',
+      );
+    });
+
+    test('multitenant variant never falls back to CRES API', () {
+      expect(multitenantConfig.variant, AppVariant.multitenant);
+      expect(multitenantConfig.storageNamespace, 'sasu_multitenant');
+      expect(multitenantConfig.backendBaseUrl, isEmpty);
+      expect(multitenantConfig.features.remoteOperationsEnabled, isTrue);
+      expect(multitenantConfig.features.updatesEnabled, isFalse);
     });
   });
 }

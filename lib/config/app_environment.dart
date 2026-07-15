@@ -1,6 +1,7 @@
 enum AppVariant {
   cres,
   loyolaDemo,
+  multitenant,
 }
 
 extension AppVariantName on AppVariant {
@@ -10,6 +11,8 @@ extension AppVariantName on AppVariant {
         return 'CRES';
       case AppVariant.loyolaDemo:
         return 'LOYOLA_DEMO';
+      case AppVariant.multitenant:
+        return 'MULTITENANT';
     }
   }
 }
@@ -19,6 +22,9 @@ AppVariant parseAppVariant(String value) {
     case 'LOYOLA_DEMO':
     case 'LOYOLA':
       return AppVariant.loyolaDemo;
+    case 'MULTITENANT':
+    case 'GENERIC':
+      return AppVariant.multitenant;
     case 'CRES':
     default:
       return AppVariant.cres;
