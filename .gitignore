@@ -56,9 +56,16 @@ backup_version_*/
 *.zip
 
 # Generated release artifacts
+_worktrees/
+releases/
 releases/android/**/*.apk
 releases/installers/*.exe
 dist/update_metadata/
+
+# Local environment files
+.env
+.env.*
+!.env.example
 
 # Local emergency/install helpers
 FIX_LOGIN_*/
