@@ -20,6 +20,7 @@ import 'package:cres_carnets_ibmcloud/ui/mobile_adaptive.dart'; // Para detectar
 import 'package:cres_carnets_ibmcloud/data/db.dart' as app_db;
 import 'package:cres_carnets_ibmcloud/data/api_service.dart';
 import 'package:cres_carnets_ibmcloud/data/auth_service.dart';
+import 'package:cres_carnets_ibmcloud/data/multitenant_api_service.dart';
 import 'package:cres_carnets_ibmcloud/data/sync_service.dart';
 import 'package:cres_carnets_ibmcloud/models/appointment_admin_model.dart';
 import 'package:cres_carnets_ibmcloud/models/referral_admin_model.dart';
@@ -29,13 +30,15 @@ import 'package:cres_carnets_ibmcloud/widgets/appointment_toast.dart';
 import 'package:cres_carnets_ibmcloud/widgets/pending_appointments_reminder_toast.dart';
 import 'package:cres_carnets_ibmcloud/widgets/referral_toast.dart';
 import 'package:cres_carnets_ibmcloud/config/app_config.dart';
+import 'package:cres_carnets_ibmcloud/screens/auth/multitenant_entry_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Dashboard principal después del login
 /// Muestra las 4 opciones principales del sistema
 class DashboardScreen extends StatefulWidget {
   final app_db.AppDatabase db;
-  const DashboardScreen({super.key, required this.db});
+  final MultitenantApiService? multitenantApi;
+  const DashboardScreen({super.key, required this.db, this.multitenantApi});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -51,6 +54,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static const Duration _referralNotificationInterval = Duration(minutes: 15);
 
   AuthUser? _currentUser;
+  MultitenantSession? _multitenantSession;
+  InstitutionBranding? _multitenantBranding;
   bool _loadingUser = true;
 
   // Permisos del usuario actual
@@ -61,6 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _canViewTickets = false;
   bool _canViewAppointments = false;
   bool _canViewReferrals = false;
+  bool _canViewAudit = false;
   int _pendingAppointmentRequests = 0;
   int _pendingReferralRequests = 0;
   bool _pollingAppointments = false;
@@ -82,10 +88,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Manejador de actualizaciones
   UpdateManager? _updateManager;
+  late final MultitenantApiService _multitenantApi;
 
   @override
   void initState() {
     super.initState();
+    _multitenantApi = widget.multitenantApi ?? MultitenantApiService();
     _loadUserInfo();
     _loadPermissions();
     _initUpdateManager();
@@ -144,6 +152,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadUserInfo() async {
+    if (AppConfig.isMultitenant) {
+      final session = await _multitenantApi.readSession();
+      final branding = await _multitenantApi.readCachedBranding();
+      if (mounted) {
+        setState(() {
+          _multitenantSession = session;
+          _multitenantBranding = branding;
+          _loadingUser = false;
+        });
+      }
+      return;
+    }
+
     final user = await AuthService.getCurrentUser();
     if (mounted) {
       setState(() {
@@ -155,6 +176,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   /// Cargar permisos del usuario actual
   Future<void> _loadPermissions() async {
+    if (AppConfig.isMultitenant) {
+      final session =
+          _multitenantSession ?? await _multitenantApi.readSession();
+      final permissions = session?.permissions.toSet() ?? <String>{};
+      final modules = session?.modules.toSet() ?? <String>{};
+      final canStudents = modules.contains('students') &&
+          (permissions.contains('students.read') ||
+              permissions.contains('students.write'));
+      final canAppointments = modules.contains('appointments') &&
+          permissions.contains('appointments.read');
+      final canAudit =
+          modules.contains('audit') && permissions.contains('audit.read');
+
+      if (mounted) {
+        setState(() {
+          _multitenantSession = session;
+          _canCreateCarnet = canStudents;
+          _canManageExpedientes = false;
+          _canViewPromocion = false;
+          _canViewVacunacion = false;
+          _canViewTickets = false;
+          _canViewAppointments = canAppointments;
+          _canViewReferrals = false;
+          _canViewAudit = canAudit;
+        });
+      }
+      _stopAppointmentPolling();
+      _stopReferralPolling();
+      return;
+    }
+
     final canCarnet = await AuthService.hasPermission('carnets:write');
     final canExpedientes = await AuthService.hasPermission('notas:write');
     final canPromocion = await AuthService.hasPermission('promociones:read');
@@ -172,6 +224,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _canViewTickets = canTickets;
         _canViewAppointments = canAppointments;
         _canViewReferrals = canReferrals;
+        _canViewAudit = false;
       });
     }
     if (canAppointments && remoteApiEnabled) {
@@ -486,6 +539,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   /// Verificar permiso antes de navegar
   Future<bool> _checkPermission(String permission, String feature) async {
+    if (AppConfig.isMultitenant) {
+      final hasPermission =
+          _multitenantSession?.permissions.contains(permission) ?? false;
+      if (!hasPermission && mounted) {
+        _showModulePreparation(feature);
+      }
+      return hasPermission;
+    }
+
     final hasPermission = await AuthService.hasPermission(permission);
 
     if (!hasPermission && mounted) {
@@ -672,6 +734,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
 
     if (confirmed == true && mounted) {
+      if (AppConfig.isMultitenant) {
+        await _multitenantApi.logout();
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => MultitenantEntryScreen(db: widget.db),
+            ),
+            (route) => false,
+          );
+        }
+        return;
+      }
+
       await AuthService.logout();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
@@ -680,6 +755,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       }
     }
+  }
+
+  void _showModulePreparation(String moduleName) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Modulo en preparacion'),
+        content: Text(
+          '$moduleName esta disponible en la licencia institucional. '
+          'La pantalla operativa multitenant se habilitara en una siguiente entrega.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _openObservatory() async {
@@ -903,45 +998,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Detectar si es móvil para AppBar compacto
     final isMobile =
         MobileAdaptive.isMobilePlatform && MobileAdaptive.isPhone(context);
-    final userName = _currentUser?.nombreCompleto ?? 'Cargando usuario';
-    final campusName = _currentUser != null
-        ? AuthService.formatCampusName(_currentUser!.campus)
-        : 'Campus pendiente';
+    final isMultitenant = AppConfig.isMultitenant;
+    final userName = isMultitenant
+        ? (_multitenantSession?.username ??
+            _multitenantSession?.userId ??
+            'Usuario institucional')
+        : _currentUser?.nombreCompleto ?? 'Cargando usuario';
+    final campusName = isMultitenant
+        ? ''
+        : _currentUser != null
+            ? AuthService.formatCampusName(_currentUser!.campus)
+            : 'Campus pendiente';
+    final institutionName = isMultitenant
+        ? (_multitenantBranding?.displayName ?? 'Institucion')
+        : AppConfig.current.institutionName;
+    final systemName = isMultitenant
+        ? 'Sistema de Atencion en Salud Digital'
+        : AppConfig.current.iconText;
+    final headerSubtitle = isMultitenant
+        ? (_multitenantBranding?.branding['subtitle'] as String? ??
+            'Atencion institucional')
+        : 'Sistema de Atencion en Salud Universitaria';
 
     return Stack(
       children: [
         Scaffold(
           backgroundColor: UAGroColors.grisClaro,
           appBar: AppBar(
-            title: _loadingUser
-                ? Text(isMobile
-                    ? AppConfig.current.shortName
-                    : AppConfig.current.systemName)
-                : isMobile
-                    ? Text(AppConfig.current.shortName)
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            AppConfig.current.systemName,
-                            style: TextStyle(fontSize: 16),
-                          ),
-                          if (_currentUser != null)
-                            Text(
-                              '${AuthService.formatRoleName(_currentUser!.rol)} - ${AuthService.formatCampusName(_currentUser!.campus)}',
-                              style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.normal),
-                            ),
-                        ],
+            title: isMultitenant
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(systemName, style: const TextStyle(fontSize: 16)),
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.normal,
+                        ),
                       ),
+                    ],
+                  )
+                : _loadingUser
+                    ? Text(isMobile
+                        ? AppConfig.current.shortName
+                        : AppConfig.current.systemName)
+                    : isMobile
+                        ? Text(AppConfig.current.shortName)
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                AppConfig.current.systemName,
+                                style: TextStyle(fontSize: 16),
+                              ),
+                              if (_currentUser != null)
+                                Text(
+                                  '${AuthService.formatRoleName(_currentUser!.rol)} - ${AuthService.formatCampusName(_currentUser!.campus)}',
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.normal),
+                                ),
+                            ],
+                          ),
             backgroundColor: UAGroColors.azulMarino,
             elevation: 0,
             centerTitle: false,
-            actions: isMobile
-                ? _buildMobileActions(context) // Acciones compactas para móvil
-                : _buildDesktopActions(
-                    context), // Todas las acciones para desktop
+            actions: isMultitenant
+                ? [
+                    IconButton(
+                      icon: const Icon(Icons.logout),
+                      tooltip: 'Cerrar sesion',
+                      onPressed: _handleLogout,
+                    )
+                  ]
+                : isMobile
+                    ? _buildMobileActions(
+                        context) // Acciones compactas para móvil
+                    : _buildDesktopActions(
+                        context), // Todas las acciones para desktop
           ),
           body: SafeArea(
             child: SingleChildScrollView(
@@ -952,22 +1089,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _InstitutionalHeader(
-                        userName: userName,
-                        campusName: campusName,
-                        versionFuture: _getVersionString(),
-                      ),
+                      if (isMultitenant)
+                        _MultitenantHeader(
+                          userName: userName,
+                          institutionName: institutionName,
+                          systemName: systemName,
+                          subtitle: headerSubtitle,
+                          versionFuture: _getVersionString(),
+                        )
+                      else
+                        _InstitutionalHeader(
+                          userName: userName,
+                          campusName: campusName,
+                          institutionName: institutionName,
+                          systemName: systemName,
+                          subtitle: headerSubtitle,
+                          footerText:
+                              'Direccion de Innovacion en la Gestion de la Salud Universitaria',
+                          versionFuture: _getVersionString(),
+                        ),
                       const SizedBox(height: 16),
-                      _StatusStrip(
-                        onSync: _handleSyncPendingData,
-                        onUpdates: () {
-                          if (_updateManager != null &&
-                              AppConfig.current.features.updatesEnabled) {
-                            _updateManager!.checkForUpdatesManual(context);
-                          }
-                        },
-                      ),
-                      if (_currentUser != null) ...[
+                      if (!isMultitenant)
+                        _StatusStrip(
+                          onSync: _handleSyncPendingData,
+                          onUpdates: () {
+                            if (_updateManager != null &&
+                                AppConfig.current.features.updatesEnabled) {
+                              _updateManager!.checkForUpdatesManual(context);
+                            }
+                          },
+                        ),
+                      if (!isMultitenant && _currentUser != null) ...[
                         const SizedBox(height: 18),
                         RecentActivityPanel(
                           user: _currentUser!,
@@ -995,12 +1147,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                       const SizedBox(height: 18),
                       _SectionHeader(
-                        title: AppConfig.isLoyolaDemo
-                            ? 'Centro de Servicios Escolares'
-                            : 'Centro de Servicios Universitarios',
-                        subtitle: AppConfig.isLoyolaDemo
-                            ? AppConfig.current.environmentBanner
-                            : 'SASU 2.5 - Universidad Autonoma de Guerrero',
+                        title: isMultitenant
+                            ? 'Modulos institucionales'
+                            : AppConfig.isLoyolaDemo
+                                ? 'Centro de Servicios Escolares'
+                                : 'Centro de Servicios Universitarios',
+                        subtitle: isMultitenant
+                            ? 'Acceso limitado al tenant activo'
+                            : AppConfig.isLoyolaDemo
+                                ? AppConfig.current.environmentBanner
+                                : 'SASU 2.5 - Universidad Autonoma de Guerrero',
                       ),
                       const SizedBox(height: 12),
                       LayoutBuilder(
@@ -1015,6 +1171,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           final spacing = 14.0;
                           final cardWidth =
                               (maxWidth - (spacing * (columns - 1))) / columns;
+
+                          if (isMultitenant) {
+                            if (_canCreateCarnet) {
+                              visibleOptions.add(
+                                _DashboardCard(
+                                  icon: Icons.people_alt_outlined,
+                                  title: 'Estudiantes',
+                                  description:
+                                      'Gestion estudiantil del tenant activo',
+                                  color: UAGroColors.azulMarino,
+                                  onTap: () =>
+                                      _showModulePreparation('Estudiantes'),
+                                  width: cardWidth,
+                                ),
+                              );
+                            }
+                            if (_canViewAppointments) {
+                              visibleOptions.add(
+                                _DashboardCard(
+                                  icon: Icons.event_available_outlined,
+                                  title: 'Citas',
+                                  description:
+                                      'Agenda institucional del tenant activo',
+                                  color: Colors.blue[700]!,
+                                  onTap: () => _showModulePreparation('Citas'),
+                                  width: cardWidth,
+                                ),
+                              );
+                            }
+                            if (_canViewAudit) {
+                              visibleOptions.add(
+                                _DashboardCard(
+                                  icon: Icons.fact_check_outlined,
+                                  title: 'Auditoria',
+                                  description: 'Registros del propio tenant',
+                                  color: Colors.teal[700]!,
+                                  onTap: () =>
+                                      _showModulePreparation('Auditoria'),
+                                  width: cardWidth,
+                                ),
+                              );
+                            }
+                            if (visibleOptions.isEmpty) {
+                              return const _ModulePreparationPanel();
+                            }
+                            return Wrap(
+                              spacing: spacing,
+                              runSpacing: spacing,
+                              children: visibleOptions,
+                            );
+                          }
 
                           if (_canCreateCarnet) {
                             visibleOptions.add(
@@ -1200,17 +1407,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         },
                       ),
                       const SizedBox(height: 18),
-                      _ObservatoryCard(onTap: _openObservatory),
+                      if (!isMultitenant ||
+                          (_multitenantSession?.modules
+                                  .contains('observatory') ??
+                              false))
+                        _ObservatoryCard(onTap: _openObservatory),
                       const SizedBox(height: 18),
-                      Text(
-                        'Dirección de Innovación en la Gestión de la Salud Universitaria',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: UAGroColors.azulMarino.withValues(alpha: 0.68),
-                          fontWeight: FontWeight.w600,
+                      if (!isMultitenant)
+                        Text(
+                          'Dirección de Innovación en la Gestión de la Salud Universitaria',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color:
+                                UAGroColors.azulMarino.withValues(alpha: 0.68),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -1390,14 +1603,18 @@ class _DashboardCard extends StatelessWidget {
   }
 }
 
-class _InstitutionalHeader extends StatelessWidget {
+class _MultitenantHeader extends StatelessWidget {
   final String userName;
-  final String campusName;
+  final String institutionName;
+  final String systemName;
+  final String subtitle;
   final Future<String> versionFuture;
 
-  const _InstitutionalHeader({
+  const _MultitenantHeader({
     required this.userName,
-    required this.campusName,
+    required this.institutionName,
+    required this.systemName,
+    required this.subtitle,
     required this.versionFuture,
   });
 
@@ -1417,7 +1634,7 @@ class _InstitutionalHeader extends StatelessWidget {
                 wide ? CrossAxisAlignment.start : CrossAxisAlignment.center,
             children: [
               Text(
-                AppConfig.current.institutionName,
+                institutionName,
                 textAlign: wide ? TextAlign.start : TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
@@ -1427,7 +1644,112 @@ class _InstitutionalHeader extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                AppConfig.current.iconText,
+                systemName,
+                textAlign: wide ? TextAlign.start : TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                textAlign: wide ? TextAlign.start : TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.86),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          );
+          final details = Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: wide ? WrapAlignment.end : WrapAlignment.center,
+            children: [
+              _InfoChip(icon: Icons.person_outline, label: userName),
+              const _InfoChip(
+                  icon: Icons.verified_user, label: 'Tenant activo'),
+              FutureBuilder<String>(
+                future: versionFuture,
+                builder: (context, snapshot) {
+                  final version = snapshot.data ?? 'Cargando version';
+                  return _InfoChip(
+                    icon: Icons.verified_outlined,
+                    label: 'v$version',
+                  );
+                },
+              ),
+            ],
+          );
+
+          if (!wide) {
+            return Column(
+              children: [identity, const SizedBox(height: 16), details],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(flex: 5, child: identity),
+              const SizedBox(width: 18),
+              Expanded(flex: 4, child: details),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _InstitutionalHeader extends StatelessWidget {
+  final String userName;
+  final String campusName;
+  final String institutionName;
+  final String systemName;
+  final String subtitle;
+  final String? footerText;
+  final Future<String> versionFuture;
+
+  const _InstitutionalHeader({
+    required this.userName,
+    required this.campusName,
+    required this.institutionName,
+    required this.systemName,
+    required this.subtitle,
+    required this.footerText,
+    required this.versionFuture,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: UAGroColors.azulMarino,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = constraints.maxWidth >= 760;
+          final identity = Column(
+            crossAxisAlignment:
+                wide ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+            children: [
+              Text(
+                institutionName,
+                textAlign: wide ? TextAlign.start : TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                systemName,
                 textAlign: wide ? TextAlign.start : TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
@@ -1763,6 +2085,43 @@ class _EmptyPermissionsPanel extends StatelessWidget {
               fontSize: 14,
               color: Colors.grey[700],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModulePreparationPanel extends StatelessWidget {
+  const _ModulePreparationPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue[200]!),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.construction_outlined, size: 42, color: Colors.blue[700]),
+          const SizedBox(height: 12),
+          Text(
+            'Modulo en preparacion',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue[900],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Los modulos contratados se habilitaran aqui conforme avance la operacion multitenant.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: Colors.grey[700]),
           ),
         ],
       ),

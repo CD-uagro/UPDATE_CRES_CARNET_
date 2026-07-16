@@ -15,8 +15,16 @@ const _loginResponse = {
   'token_type': 'bearer',
   'tenant_id': 'loyola-demo',
   'user_id': 'loyola-demo-admin-loyola',
+  'username': 'admin.loyola',
   'roles': ['tenant_admin'],
-  'permissions': [],
+  'permissions': [
+    'students.read',
+    'students.write',
+    'appointments.read',
+    'appointments.write',
+    'audit.read',
+  ],
+  'modules': ['students', 'appointments', 'audit'],
   'requires_password_change': true,
 };
 
@@ -118,7 +126,8 @@ void main() {
       expect(session.accessToken, 'test-token');
       expect(session.refreshToken, 'test-refresh');
       expect(session.roles, ['tenant_admin']);
-      expect(session.permissions, isEmpty);
+      expect(session.permissions, contains('students.read'));
+      expect(session.modules, ['students', 'appointments', 'audit']);
       expect(
         store.values[MultitenantApiService.accessTokenKey],
         'test-token',

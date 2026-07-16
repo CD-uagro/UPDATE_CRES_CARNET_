@@ -43,8 +43,10 @@ class MultitenantSession {
   final String tokenType;
   final String tenantId;
   final String userId;
+  final String? username;
   final List<String> roles;
   final List<String> permissions;
+  final List<String> modules;
   final bool requiresPasswordChange;
 
   const MultitenantSession({
@@ -53,8 +55,10 @@ class MultitenantSession {
     required this.tokenType,
     required this.tenantId,
     required this.userId,
+    required this.username,
     required this.roles,
     required this.permissions,
+    required this.modules,
     required this.requiresPasswordChange,
   });
 
@@ -65,6 +69,7 @@ class MultitenantSession {
     final userId = json['user_id'];
     final roles = json['roles'];
     final permissions = json['permissions'];
+    final modules = json['modules'] ?? json['enabled_modules'] ?? const [];
     final requiresPasswordChange = json['requires_password_change'];
     if (accessToken is! String ||
         accessToken.isEmpty ||
@@ -73,6 +78,7 @@ class MultitenantSession {
         userId is! String ||
         roles is! List ||
         permissions is! List ||
+        modules is! List ||
         requiresPasswordChange is! bool) {
       throw const FormatException('Respuesta de login multitenant invalida.');
     }
@@ -82,11 +88,26 @@ class MultitenantSession {
       tokenType: tokenType,
       tenantId: tenantId,
       userId: userId,
+      username: json['username'] as String?,
       roles: roles.map((role) => '$role').toList(),
       permissions: permissions.map((permission) => '$permission').toList(),
+      modules: modules.map((module) => '$module').toList(),
       requiresPasswordChange: requiresPasswordChange,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'access_token': accessToken,
+        'refresh_token': refreshToken,
+        'token_type': tokenType,
+        'tenant_id': tenantId,
+        'user_id': userId,
+        'username': username,
+        'roles': roles,
+        'permissions': permissions,
+        'modules': modules,
+        'requires_password_change': requiresPasswordChange,
+      };
 }
 
 enum MultitenantAuthFailureType {
@@ -145,6 +166,7 @@ class MultitenantApiService {
   static const accessTokenKey = 'sasu_multitenant_access_token';
   static const refreshTokenKey = 'sasu_multitenant_refresh_token';
   static const tenantKey = 'sasu_multitenant_tenant_id';
+  static const sessionKey = 'sasu_multitenant_session';
   static const brandingKey = 'sasu_multitenant_branding_cache';
 
   final http.Client _client;
@@ -346,6 +368,8 @@ class MultitenantApiService {
 
   Future<void> saveSession(MultitenantSession session) async {
     await _tokenStore.write(key: accessTokenKey, value: session.accessToken);
+    await _tokenStore.write(
+        key: sessionKey, value: jsonEncode(session.toJson()));
     final refreshToken = session.refreshToken;
     if (refreshToken == null || refreshToken.isEmpty) {
       await _tokenStore.delete(key: refreshTokenKey);
@@ -353,6 +377,30 @@ class MultitenantApiService {
       await _tokenStore.write(key: refreshTokenKey, value: refreshToken);
     }
     await _tokenStore.write(key: tenantKey, value: session.tenantId);
+  }
+
+  Future<MultitenantSession?> readSession() async {
+    final sessionJson = await _tokenStore.read(key: sessionKey);
+    if (sessionJson == null || sessionJson.isEmpty) return null;
+    try {
+      return MultitenantSession.fromJson(
+        jsonDecode(sessionJson) as Map<String, dynamic>,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<InstitutionBranding?> readCachedBranding() async {
+    final brandingJson = await _tokenStore.read(key: brandingKey);
+    if (brandingJson == null || brandingJson.isEmpty) return null;
+    try {
+      return InstitutionBranding.fromJson(
+        jsonDecode(brandingJson) as Map<String, dynamic>,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<bool> hasSession() async {
@@ -364,5 +412,6 @@ class MultitenantApiService {
     await _tokenStore.delete(key: accessTokenKey);
     await _tokenStore.delete(key: refreshTokenKey);
     await _tokenStore.delete(key: tenantKey);
+    await _tokenStore.delete(key: sessionKey);
   }
 }
