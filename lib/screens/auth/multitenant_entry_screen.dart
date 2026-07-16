@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../../config/app_config.dart';
-import '../../data/db.dart' as DB;
+import '../../data/db.dart' as db_data;
 import '../../data/multitenant_api_service.dart';
 import '../dashboard_screen.dart';
+import 'temporary_password_change_screen.dart';
 
 class MultitenantEntryScreen extends StatefulWidget {
-  final DB.AppDatabase db;
+  final db_data.AppDatabase db;
+  final MultitenantApiService? api;
 
-  const MultitenantEntryScreen({super.key, required this.db});
+  const MultitenantEntryScreen({super.key, required this.db, this.api});
 
   @override
   State<MultitenantEntryScreen> createState() => _MultitenantEntryScreenState();
@@ -18,11 +20,17 @@ class _MultitenantEntryScreenState extends State<MultitenantEntryScreen> {
   final _institutionCode = TextEditingController(text: 'LOYOLA-DEMO-2026');
   final _username = TextEditingController();
   final _password = TextEditingController();
-  final _api = MultitenantApiService();
+  late final MultitenantApiService _api;
 
   InstitutionBranding? _branding;
   String? _error;
   bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _api = widget.api ?? MultitenantApiService();
+  }
 
   @override
   void dispose() {
@@ -53,18 +61,27 @@ class _MultitenantEntryScreenState extends State<MultitenantEntryScreen> {
       _error = null;
     });
     try {
-      await _api.login(
+      final session = await _api.login(
         institutionCode: _institutionCode.text,
         username: _username.text,
         password: _password.text,
       );
       if (!mounted) return;
+      if (session.requiresPasswordChange) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => TemporaryPasswordChangeScreen(api: _api),
+          ),
+        );
+        return;
+      }
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => DashboardScreen(db: widget.db)),
       );
+    } on MultitenantAuthException catch (error) {
+      setState(() => _error = error.message);
     } catch (_) {
-      setState(
-          () => _error = 'Credenciales invalidas o servidor no disponible.');
+      setState(() => _error = 'Servidor no disponible.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
