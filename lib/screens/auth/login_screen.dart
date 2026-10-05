@@ -2,6 +2,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../dashboard_screen.dart';
 import '../../data/auth_service.dart';
 import '../../data/db.dart' as app_db;
@@ -23,6 +24,25 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  Future<void> _openPasswordRecovery() async {
+    try {
+      final opened = await launchUrl(
+        AuthService.passwordRecoveryUrl,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened) throw StateError('Browser unavailable');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se pudo abrir el navegador. Intenta de nuevo o solicita ayuda al soporte de SASU.',
+          ),
+        ),
+      );
+    }
+  }
+
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -663,7 +683,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                 ),
               ),
-              const SizedBox(height: 26),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: _isLoading ? null : _openPasswordRecovery,
+                icon: const Icon(Icons.lock_reset),
+                label: const Text('Olvidé mi contraseña'),
+              ),
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
