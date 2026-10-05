@@ -68,7 +68,7 @@ class AuthUser {
 class AuthService {
   static const String _baseUrl = 'https://fastapi-backend-o7ks.onrender.com';
   static Uri get passwordRecoveryUrl =>
-      Uri.parse('$_baseUrl/admin/recover.html');
+      Uri.parse('$_baseUrl/recuperar');
   static const _storage = FlutterSecureStorage();
 
   // Keys para almacenamiento seguro
